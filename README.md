@@ -1,4 +1,6 @@
-![bibernate.png](..%2F..%2FDesktop%2Fbibernate.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/43843525/224983901-7faa5077-6b41-4c9a-90ff-0567184b4e1a.png" />
+</p>
 
 # Bibernate
 **Bibernate** is a custom and simplified analog of Hibernate, a popular Object-Relational Mapping (ORM) framework. It is written in plain Java and provides basic functionality for persistence services.
