@@ -13,11 +13,11 @@ import java.util.List;
 
 import static java.lang.Boolean.TRUE;
 
-public class EntityDao {
+public class EntityPersister {
     private final DataSource dataSource;
-    private static final String FIND_ENTITY_BY_FIELD_NAME = "select * from %s where %s = ?";
+    private static final String FIND_ENTITY_BY_FIELD_NAME = "select * from %s where %s = ?;";
 
-    public EntityDao(DataSource dataSource) {
+    public EntityPersister(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
@@ -65,15 +65,15 @@ public class EntityDao {
             }
             return entity;
         } catch (InstantiationException e) {
-            throw new RuntimeException(e);
+            throw new BibernateException(e);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new BibernateException(e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
+            throw new BibernateException(e);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new BibernateException(e);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new BibernateException(e);
         }
     }
 }

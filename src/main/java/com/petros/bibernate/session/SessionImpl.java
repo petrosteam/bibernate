@@ -1,16 +1,16 @@
 package com.petros.bibernate.session;
 
-import com.petros.bibernate.dao.EntityDao;
+import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.exception.BibernateException;
 
 import javax.sql.DataSource;
 
 public class SessionImpl implements Session {
-    private final EntityDao entityDao;
+    private final EntityPersister entityPersister;
 
 
     public SessionImpl(DataSource dataSource) {
-        this.entityDao = new EntityDao(dataSource);
+        this.entityPersister = new EntityPersister(dataSource);
     }
 
     @Override
@@ -25,7 +25,7 @@ public class SessionImpl implements Session {
 
     @Override
     public <T> T find(Class<T> entityClass, Object primaryKey) {
-        return entityDao.findById(entityClass, primaryKey);
+        return entityPersister.findById(entityClass, primaryKey);
     }
 
     @Override

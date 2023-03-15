@@ -1,6 +1,6 @@
 package com.petros.bibernate.session.crud;
 
-import com.petros.bibernate.session.PersistenceContext;
+import com.petros.bibernate.session.Persistence;
 import com.petros.bibernate.session.Session;
 import com.petros.bibernate.session.SessionFactory;
 import com.petros.bibernate.session.model.Product;
@@ -56,7 +56,7 @@ class FindByTest {
 
     @Test
     void testFindById() {
-        SessionFactory sessionFactory = PersistenceContext.createSessionFactory();
+        SessionFactory sessionFactory = Persistence.createSessionFactory();
         Session session = sessionFactory.openSession();
         Product product = session.find(Product.class, 1L);
 

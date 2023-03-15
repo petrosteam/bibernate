@@ -1,6 +1,6 @@
 package com.petros.bibernate.session;
 
-public class PersistenceContext {
+public class Persistence {
 
     private static SessionFactory sessionFactory;
 
