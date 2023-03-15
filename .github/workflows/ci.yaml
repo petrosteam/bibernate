@@ -31,3 +31,6 @@ jobs:
           distribution: 'temurin'
       - name: Testing
         run:  mvn verify
+
+      - name: JaCoCo Report
+        uses: Madrapps/jacoco-report@v1.3
