@@ -5,6 +5,7 @@ import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -31,8 +32,8 @@ public class EntityPersisterTest {
     }
 
     @Test
+    @DisplayName("Test the findById method with a known entity ID")
     public void testFindById() {
-        // Test the findById method with a known entity ID
         Product product = entityPersister.findById(Product.class, 1L);
 
         assertNotNull(product);
@@ -43,8 +44,8 @@ public class EntityPersisterTest {
     }
 
     @Test
+    @DisplayName("Test the findOne method with a known entity field and value")
     public void testFindOne() throws NoSuchFieldException {
-        // Test the findOne method with a known entity field and value
         Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), "2");
 
         assertNotNull(product);
@@ -55,23 +56,23 @@ public class EntityPersisterTest {
     }
 
     @Test
+    @DisplayName("Test the findOne method with non-existed entity")
     public void testFindOneNotFound() throws NoSuchFieldException {
-        // Test the findOne method with non-existed entity
         Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), "8");
 
         assertNull(product);
     }
 
     @Test
+    @DisplayName("Test the findOne method with a field that return several products")
     public void testFindOneReturnSeveral() {
-        // Test the findOne method with a field that return several products
         assertThrows(BibernateException.class, () -> entityPersister.findOne(Product.class,
                 Product.class.getDeclaredField("producer"), "Sony"));
     }
 
     @Test
+    @DisplayName("Test the findAll method with a known entity field and value")
     public void testFindAll() throws NoSuchFieldException {
-        // Test the findAll method with a known entity field and value
         List<Product> products = entityPersister
                 .findAll(Product.class, Product.class.getDeclaredField("producer"), "Sony");
         assertEquals(2, products.size());
