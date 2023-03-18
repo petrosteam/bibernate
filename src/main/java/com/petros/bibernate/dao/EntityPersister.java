@@ -28,7 +28,10 @@ public class EntityPersister {
 
     public <T> T findOne(Class<T> entityClass, Field field, Object fieldValue) {
         List<T> entities = findAll(entityClass, field, fieldValue);
-        if (entities.size() != 1) {
+        if (entities.size() == 0) {
+            return null;
+        }
+        if (entities.size() > 1) {
             throw new BibernateException("Result must contain exactly one row");
         }
         return entities.get(0);
