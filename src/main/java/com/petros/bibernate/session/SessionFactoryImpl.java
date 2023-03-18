@@ -1,12 +1,15 @@
 package com.petros.bibernate.session;
 
+import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
-import org.h2.jdbcx.JdbcDataSource;
 
 import javax.sql.DataSource;
 
 public class SessionFactoryImpl implements SessionFactory {
 
+    public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;";
+    public static final String DATABASE_USERNAME = "sa";
+    public static final String DATABASE_PASSWORD = "";
     private final DataSource dataSource;
 
     public SessionFactoryImpl() {
@@ -29,10 +32,6 @@ public class SessionFactoryImpl implements SessionFactory {
     }
 
     private static DataSource initializeDataSource() {
-        JdbcDataSource datasource = new JdbcDataSource();
-        datasource.setURL("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;");
-        datasource.setUser("sa");
-        datasource.setPassword("");
-        return datasource;
+        return new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
     }
 }

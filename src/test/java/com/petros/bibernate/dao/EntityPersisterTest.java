@@ -1,31 +1,34 @@
 package com.petros.bibernate.dao;
 
+import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
-import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class EntityPersisterTest {
+    public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+    public static final String DATABASE_USERNAME = "sa";
+    public static final String DATABASE_PASSWORD = "";
+
+    // TODO: 18.03.2023 After Configuration class created, grab properties from file
+//    public static final String DATABASE_URL = "jdbc:postgresql://localhost:5432/postgres";
+//    public static final String DATABASE_USERNAME = "postgres";
+//    public static final String DATABASE_PASSWORD = "123qwe";
     private EntityPersister entityPersister;
 
     @BeforeEach
     public void setUp() {
-        // Create an H2 in-memory database and run the Flyway migration
-        JdbcDataSource dataSource = new JdbcDataSource();
-        dataSource.setUrl("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
-        dataSource.setUser("sa");
-        dataSource.setPassword("");
+        // Create a database and run the Flyway migration
+        DataSource dataSource = new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
         Flyway.configure().dataSource(dataSource).locations("classpath:db/migration/product-test-data").load().migrate();
         // Initialize the EntityPersister with the H2 data source
         entityPersister = new EntityPersister(dataSource);
@@ -46,7 +49,7 @@ public class EntityPersisterTest {
     @Test
     @DisplayName("Test the findOne method with a known entity field and value")
     public void testFindOne() throws NoSuchFieldException {
-        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), "2");
+        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 2);
 
         assertNotNull(product);
         assertEquals(2L, product.getId());
@@ -58,7 +61,7 @@ public class EntityPersisterTest {
     @Test
     @DisplayName("Test the findOne method with non-existed entity")
     public void testFindOneNotFound() throws NoSuchFieldException {
-        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), "8");
+        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 8);
 
         assertNull(product);
     }
