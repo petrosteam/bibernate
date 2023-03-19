@@ -23,11 +23,7 @@ class ReadPropertiesTest {
     @CsvSource({
             "username, username",
             "password, password",
-            "driver-name, java.sql.Driver",
             "jdbc-url, jdbc:h2:mem:test",
-            "port, 111",
-            "database-name, test",
-            "hostname, localhost"
     })
     void getPropertyNameThenSuccess(String propertyName, String propertyValue) {
         var actualPropertyValue = readPropertiesFromPropFile.getProperties()

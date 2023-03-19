@@ -31,28 +31,10 @@ public class ConfigurationImpl implements Configuration {
         return properties.getProperty("password");
     }
 
-    @Override
-    public String getDriverName() {
-        return properties.getProperty("driver-name");
-    }
-
-    @Override
-    public String getHostname() {
-        return properties.getProperty("hostname");
-    }
-
-    @Override
-    public String getPort() {
-        return properties.getProperty("port");
-    }
 
     @Override
     public String getUrl() {
         return properties.getProperty("jdbc-url");
     }
 
-    @Override
-    public String getDatabaseName() {
-        return properties.getProperty("database-name");
-    }
 }

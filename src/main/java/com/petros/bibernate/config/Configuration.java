@@ -8,13 +8,6 @@ public interface Configuration {
 
     String getPassword();
 
-    String getDriverName();
-
-    String getHostname();
-
-    String getPort();
-
     String getUrl();
-    String getDatabaseName();
 
 }

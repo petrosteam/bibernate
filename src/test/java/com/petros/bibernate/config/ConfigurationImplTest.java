@@ -26,10 +26,17 @@ class ConfigurationImplTest {
     }
 
     @Test
-    void getDriverNameThenSuccess() {
-        var expectedDriverName = "java.sql.Driver";
-        var actualDriverName = configuration.getDriverName();
-        assertEquals(expectedDriverName, actualDriverName);
+    void getUsernameThenSuccess() {
+        var expectedUsername = "username";
+        var actualUsername = configuration.getUsername();
+        assertEquals(expectedUsername, actualUsername);
+    }
+
+    @Test
+    void getPasswordThenSuccess() {
+        var expectedPassword = "password";
+        var actualPassword = configuration.getPassword();
+        assertEquals(expectedPassword, actualPassword);
     }
 
 
