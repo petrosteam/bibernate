@@ -1,12 +1,20 @@
 package com.petros.bibernate.config;
 
-import com.petros.bibernate.config.properties.ReadPropertiesFromPropImpl;
+import com.petros.bibernate.config.properties.ReadPropertiesImpl;
 
 import java.util.Properties;
 
 public class ConfigurationImpl implements Configuration {
 
-    Properties properties = new ReadPropertiesFromPropImpl().getProperties();
+    private static Properties properties;
+
+    public ConfigurationImpl() {
+        this(new ReadPropertiesImpl());
+    }
+
+    public ConfigurationImpl(ReadPropertiesImpl readPropertiesFromProp) {
+        properties = readPropertiesFromProp.getProperties();
+    }
 
     @Override
     public String getProperty(String key) {
@@ -40,8 +48,6 @@ public class ConfigurationImpl implements Configuration {
 
     @Override
     public String getUrl() {
-
-        //TODO create url from params
-        return null;
+        return properties.getProperty("url");
     }
 }
