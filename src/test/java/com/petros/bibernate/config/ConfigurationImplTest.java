@@ -4,27 +4,33 @@ import com.petros.bibernate.config.properties.ReadPropertiesImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Properties;
-
 import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConfigurationImplTest {
 
-    private ReadPropertiesImpl readPropertiesFromPropFile;
+    private ConfigurationImpl configuration;
 
     @BeforeEach
     void init() {
-        readPropertiesFromPropFile =
+        var readPropertiesFromPropFile =
                 new ReadPropertiesImpl(TEST_PROPERTIES_PATH);
+        configuration = new ConfigurationImpl(readPropertiesFromPropFile);
     }
-
 
     @Test
-    void getPropertyNameThenSuccess(String property) {
-        Properties properties = readPropertiesFromPropFile.getProperties();
-        var actualProperty = properties.getProperty(property);
-        assertEquals(property, actualProperty);
+    void getJDBCUrlThenSuccess() {
+        var expectedUsername = "jdbc:h2:mem:test";
+        var actualUsername = configuration.getUrl();
+        assertEquals(expectedUsername, actualUsername);
     }
+
+    @Test
+    void getDriverNameThenSuccess() {
+        var expectedDriverName = "java.sql.Driver";
+        var actualDriverName = configuration.getDriverName();
+        assertEquals(expectedDriverName, actualDriverName);
+    }
+
 
 }

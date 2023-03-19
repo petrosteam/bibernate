@@ -15,6 +15,6 @@ public interface Configuration {
     String getPort();
 
     String getUrl();
-
+    String getDatabaseName();
 
 }

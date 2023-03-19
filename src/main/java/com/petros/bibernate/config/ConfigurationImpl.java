@@ -48,6 +48,11 @@ public class ConfigurationImpl implements Configuration {
 
     @Override
     public String getUrl() {
-        return properties.getProperty("url");
+        return properties.getProperty("jdbc-url");
+    }
+
+    @Override
+    public String getDatabaseName() {
+        return properties.getProperty("database-name");
     }
 }
