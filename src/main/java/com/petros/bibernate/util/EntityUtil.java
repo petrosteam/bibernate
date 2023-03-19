@@ -8,6 +8,7 @@ import com.petros.bibernate.exception.BibernateException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
@@ -43,12 +44,37 @@ public class EntityUtil {
      */
     public static Field getIdField(Class<?> entityClass) {
         List<Field> idFields = Arrays.stream(entityClass.getDeclaredFields())
-                .filter(field -> field.isAnnotationPresent(Id.class))
+                .filter(EntityUtil::isIdField)
                 .toList();
         if (idFields.size() != 1) {
             throw new BibernateException(
                     format("Entity %s must contain exactly one field annotated with @Id", entityClass.getSimpleName()));
         }
         return idFields.get(0);
+    }
+
+    public static boolean isIdField(Field field) {
+        return field.isAnnotationPresent(Id.class);
+    }
+
+    public static List<String> getInsertableColumns(Class<?> entityClass) {
+        return Arrays.stream(entityClass.getDeclaredFields())
+                .filter(field -> !isIdField(field))
+                .map(EntityUtil::getColumnName)
+                .collect(Collectors.toList());
+    }
+
+    public static List<Object> getInsertableValues(Object entity)  {
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .filter(field -> !isIdField(field))
+                .peek(field -> field.setAccessible(true))
+                .map(field -> {
+                    try {
+                        return field.get(entity);
+                    } catch (IllegalAccessException e) {
+                        throw new BibernateException(e);
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -1,5 +1,6 @@
 package com.petros.bibernate.dao;
 
+import com.mysql.cj.jdbc.MysqlDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
@@ -77,4 +78,25 @@ public class EntityPersisterTest {
                 .findAll(Product.class, Product.class.getDeclaredField("producer"), "Sony");
         assertEquals(2, products.size());
     }
+
+    @Test
+    @DisplayName("Test the insert method with a new entity")
+    public void testInsertNewEntity() {
+        Product product = new Product();
+        product.setProductName("Nintendo Switch");
+        product.setProducer("Nintendo");
+        product.setPrice(BigDecimal.valueOf(29900, 2));
+
+        Product insertedProduct = entityPersister.insert(product);
+
+        assertNotNull(insertedProduct.getId());
+        assertEquals(4L, insertedProduct.getId());
+        assertEquals(product, insertedProduct);
+    }
+
+    @Test
+    public void testInsertNullEntity() {
+        assertThrows(NullPointerException.class, () -> entityPersister.insert(null));
+    }
+
 }
