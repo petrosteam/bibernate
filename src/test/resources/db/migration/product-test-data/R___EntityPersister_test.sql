@@ -1,5 +1,5 @@
 CREATE TABLE products (
-                          id bigint NOT NULL,
+                          id bigint auto_increment,
                           name varchar(255) NOT NULL,
                           producer varchar(255) NOT NULL,
                           price decimal(10,2) NOT NULL,
