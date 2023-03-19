@@ -1,6 +1,5 @@
 package com.petros.bibernate.dao;
 
-import com.mysql.cj.jdbc.MysqlDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
