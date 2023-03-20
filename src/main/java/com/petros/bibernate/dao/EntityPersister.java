@@ -1,7 +1,10 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
-
+import com.petros.bibernate.util.EntityUtil;
+import lombok.extern.slf4j.Slf4j;
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -22,6 +25,7 @@ import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
 import static com.petros.bibernate.util.EntityUtil.getTableName;
 import static java.lang.Boolean.TRUE;
 
+@Slf4j
 public class EntityPersister {
     private final DataSource dataSource;
     private static final String FIND_ENTITY_BY_FIELD_NAME = "select * from %s where %s = ?;";
@@ -32,7 +36,8 @@ public class EntityPersister {
     }
 
     public <T> T findById(Class<T> entityClass, Object idValue) {
-        Field idField = getIdField(entityClass);
+        Field idField = EntityUtil.getIdField(entityClass);
+        log.debug("Searching for {} entity by field = {} with id = {}", entityClass.getSimpleName(), idField.getName(), idValue);
         return findOne(entityClass, idField, idValue);
     }
 
@@ -54,6 +59,7 @@ public class EntityPersister {
             String tableName = getTableName(entityClass);
             String columnName = getColumnName(field);
             String query = String.format(FIND_ENTITY_BY_FIELD_NAME, tableName, columnName);
+            log.debug("Running query: {}", query);
 
             try (var statement = connection.prepareStatement(query)) {
                 statement.setObject(1, fieldValue);
@@ -126,19 +132,13 @@ public class EntityPersister {
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
-                String columnName = getColumnName(entityField);
-                entityField.set(entity, resultSet.getObject(columnName));
+                String columnName = EntityUtil.getColumnName(entityField);
+                Object columnValue = resultSet.getObject(columnName);
+                log.trace("Setting DB->Object, class = {}, field = {}, value = {}", entityClass.getSimpleName(), columnName, columnValue);
+                entityField.set(entity, columnValue);
             }
             return entity;
-        } catch (InstantiationException e) {
-            throw new BibernateException(e);
-        } catch (IllegalAccessException e) {
-            throw new BibernateException(e);
-        } catch (InvocationTargetException e) {
-            throw new BibernateException(e);
-        } catch (NoSuchMethodException e) {
-            throw new BibernateException(e);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new BibernateException(e);
         }
     }
