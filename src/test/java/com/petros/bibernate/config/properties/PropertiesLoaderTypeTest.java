@@ -8,14 +8,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class ReadPropertiesTest {
+class PropertiesLoaderTypeTest {
 
-    private ReadPropertiesImpl readPropertiesFromPropFile;
+    private PropertiesFileLoader readPropertiesFromPropFile;
 
     @BeforeEach
     void init() {
         readPropertiesFromPropFile =
-                new ReadPropertiesImpl(TEST_PROPERTIES_PATH);
+                new PropertiesFileLoader(TEST_PROPERTIES_PATH);
     }
 
     @DisplayName("Check that property username is present and returned")

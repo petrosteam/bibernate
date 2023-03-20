@@ -1,6 +1,6 @@
 package com.petros.bibernate.config;
 
-import com.petros.bibernate.config.properties.ReadPropertiesImpl;
+import com.petros.bibernate.config.properties.PropertiesFileLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +14,7 @@ class ConfigurationImplTest {
     @BeforeEach
     void init() {
         var readPropertiesFromPropFile =
-                new ReadPropertiesImpl(TEST_PROPERTIES_PATH);
+                new PropertiesFileLoader(TEST_PROPERTIES_PATH);
         configuration = new ConfigurationImpl(readPropertiesFromPropFile);
     }
 

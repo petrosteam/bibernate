@@ -2,18 +2,17 @@ package com.petros.bibernate.config.properties;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
 
-public class ReadPropertiesImpl implements ReadProperties {
+public class PropertiesFileLoader implements Properties {
 
     public static final String APPLICATION_PROPERTIES_PATH = "src/main/resources/application.properties";
-    private static final Properties properties = new Properties();
+    private static final java.util.Properties properties = new java.util.Properties();
 
-    public ReadPropertiesImpl() {
+    public PropertiesFileLoader() {
         this(APPLICATION_PROPERTIES_PATH);
     }
 
-    public ReadPropertiesImpl(String propertiesPath) {
+    public PropertiesFileLoader(String propertiesPath) {
         try (var file = new FileInputStream(propertiesPath)) {
             properties.load(file);
         } catch (IOException ex) {
@@ -22,7 +21,7 @@ public class ReadPropertiesImpl implements ReadProperties {
     }
 
     @Override
-    public Properties getProperties() {
+    public java.util.Properties getProperties() {
         return properties;
     }
 }

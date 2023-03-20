@@ -1,19 +1,18 @@
 package com.petros.bibernate.config;
 
-import com.petros.bibernate.config.properties.ReadPropertiesImpl;
-
-import java.util.Properties;
+import com.petros.bibernate.config.properties.PropertiesFileLoader;
+import com.petros.bibernate.config.properties.Properties;
 
 public class ConfigurationImpl implements Configuration {
 
-    private static Properties properties;
+    private static java.util.Properties properties;
 
     public ConfigurationImpl() {
-        this(new ReadPropertiesImpl());
+        this(new PropertiesFileLoader());
     }
 
-    public ConfigurationImpl(ReadPropertiesImpl readPropertiesFromProp) {
-        properties = readPropertiesFromProp.getProperties();
+    public ConfigurationImpl(Properties propertiesFileLoader) {
+        properties = propertiesFileLoader.getProperties();
     }
 
     @Override
