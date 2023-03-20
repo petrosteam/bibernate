@@ -1,6 +1,6 @@
 package com.petros.bibernate.config.properties;
 
-public interface Properties {
+public interface PropertiesLoader {
 
     java.util.Properties getProperties();
 

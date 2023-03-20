@@ -1,7 +1,7 @@
 package com.petros.bibernate.config;
 
 import com.petros.bibernate.config.properties.PropertiesFileLoader;
-import com.petros.bibernate.config.properties.Properties;
+import com.petros.bibernate.config.properties.PropertiesLoader;
 
 public class ConfigurationImpl implements Configuration {
 
@@ -11,7 +11,7 @@ public class ConfigurationImpl implements Configuration {
         this(new PropertiesFileLoader());
     }
 
-    public ConfigurationImpl(Properties propertiesFileLoader) {
+    public ConfigurationImpl(PropertiesLoader propertiesFileLoader) {
         properties = propertiesFileLoader.getProperties();
     }
 
