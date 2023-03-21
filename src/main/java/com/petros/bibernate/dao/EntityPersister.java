@@ -1,7 +1,10 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
-
+import com.petros.bibernate.util.EntityUtil;
+import lombok.extern.slf4j.Slf4j;
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +31,7 @@ import static java.lang.Boolean.TRUE;
 /**
  * Provides basic functionality for persisting an entity via JDBC.
  */
+@Slf4j
 public class EntityPersister {
     private final DataSource dataSource;
     private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "select * from %s where %s = ?;";
@@ -48,6 +52,7 @@ public class EntityPersister {
      */
     public <T> T findById(Class<T> entityClass, Object idValue) {
         Field idField = getIdField(entityClass);
+        log.debug("Searching for {} entity by field = {} with id = {}", entityClass.getSimpleName(), idField.getName(), idValue);
         return findOne(entityClass, idField, idValue);
     }
 
