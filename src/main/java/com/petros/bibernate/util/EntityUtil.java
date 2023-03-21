@@ -1,8 +1,6 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.Column;
-import com.petros.bibernate.annotation.Id;
-import com.petros.bibernate.annotation.Table;
+import com.petros.bibernate.annotation.*;
 import com.petros.bibernate.exception.BibernateException;
 
 import java.lang.reflect.Field;
@@ -20,6 +18,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the database table name from a given entity type. Returns the value of annotation @Table if exists, otherwise simple class name is returned
+     *
      * @param entityClass entity class that is mapped to database table
      * @return the table name
      */
@@ -31,6 +30,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the database column name from a given class field. Returns the value of annotation @Column if exists, otherwise simple field name is returned
+     *
      * @param field field that is mapped to database column
      * @return the column name
      */
@@ -41,7 +41,20 @@ public class EntityUtil {
     }
 
     /**
+     * Retrieves the JoinColumn name from a given class field.
+     *
+     * @param field field that is mapped as a foreign key
+     * @return the value of annotation @JoinColumn
+     */
+    public static String getJoinColumnName(Field field) {
+        return ofNullable(field.getAnnotation(JoinColumn.class))
+                .map(JoinColumn::value)
+                .orElse(field.getName());
+    }
+
+    /**
      * Retrieves the field annotated with @Id from a given entity class.
+     *
      * @param entityClass entity class that is mapped to database table
      * @return the field marked with @Id
      */
@@ -101,7 +114,7 @@ public class EntityUtil {
      * @param entity the entity for which to retrieve the insertable values
      * @return the list of insertable values
      */
-    public static List<Object> getInsertableValues(Object entity)  {
+    public static List<Object> getInsertableValues(Object entity) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
@@ -149,4 +162,39 @@ public class EntityUtil {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Checks if field has a representation in relation database.
+     *
+     * @param field
+     * @return true if field has relation to DB entity
+     */
+    public static boolean hasEntityRelation(Field field) {
+        return Arrays.stream(field.getAnnotations())
+                .anyMatch(a -> a.annotationType().isAssignableFrom(Column.class)
+                        || a.annotationType().isAssignableFrom(Id.class));
+    }
+
+    /**
+     * Checks if value is annotated with one of annotations
+     * that means complicated entity relations
+     *
+     * @param field the field to check
+     * @return true if field has simple value and not related to another entity
+     */
+    public static boolean isRegularField(Field field) {
+        return !isEntityField(field);
+    }
+
+    /**
+     * Checks if value is annotated with {@link ManyToOne} annotation
+     * that means complicated entity relations
+     *
+     * @param field the field to check
+     * @return true if entity has ManyToOne relation
+     */
+    public static boolean isEntityField(Field field) {
+        return field.isAnnotationPresent(ManyToOne.class);
+    }
+
 }

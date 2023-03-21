@@ -24,6 +24,10 @@ import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
 import static com.petros.bibernate.util.EntityUtil.getTableName;
 import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
 import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
+import static com.petros.bibernate.util.EntityUtil.isEntityField;
+import static com.petros.bibernate.util.EntityUtil.isRegularField;
+import static com.petros.bibernate.util.EntityUtil.getJoinColumnName;
+import static com.petros.bibernate.util.EntityUtil.hasEntityRelation;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -213,13 +217,29 @@ public class EntityPersister {
                 .collect(Collectors.joining(", "));
     }
 
-    private static <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
+    private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
         try {
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
-                String columnName = getColumnName(entityField);
-                entityField.set(entity, resultSet.getObject(columnName));
+
+                if (isRegularField(entityField)) {
+                    if (!hasEntityRelation(entityField)) {
+                        continue;
+                    }
+                    String columnName = getColumnName(entityField);
+                    entityField.set(entity, resultSet.getObject(columnName));
+                } else if (isEntityField(entityField)) {
+                    var relatedEntityClass = entityField.getType();
+
+                    var relatedEntityId = getJoinColumnName(entityField);
+                    var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
+
+                    var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue);
+
+                    //TODO: place for lazy load future implementation
+                    entityField.set(entity, relatedEntity);
+                }
             }
             return entity;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |

@@ -2,6 +2,7 @@ package com.petros.bibernate.util;
 
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.util.model.BrokenPerson;
+import com.petros.bibernate.util.model.UtilNote;
 import com.petros.bibernate.util.model.Person;
 import com.petros.bibernate.util.model.User;
 import org.junit.jupiter.api.DisplayName;
@@ -63,6 +64,20 @@ class EntityUtilTest {
     @Test
     @DisplayName("getIdField throws exception when @Id is absent")
     void getIdFieldIdAnnotationAbsent() {
+        BibernateException ex = assertThrows(BibernateException.class, () -> EntityUtil.getIdField(BrokenPerson.class));
+        assertEquals("Entity BrokenPerson must contain exactly one field annotated with @Id", ex.getMessage());
+    }
+    @Test
+    @DisplayName("getJoinColumnName returns annotation value when @JoinColumn is present")
+    void getJoinColumnAnnotationPresent() throws NoSuchFieldException {
+        Field personField = UtilNote.class.getDeclaredField("person");
+        String joinColumnName = EntityUtil.getJoinColumnName(personField);
+        assertNotNull(joinColumnName);
+        assertEquals("person_id", joinColumnName);
+    }
+    @Test
+    @DisplayName("JoinColumnName throws exception when @Id is absent")
+    void getJoinColumnAnnotationPresent2() {
         BibernateException ex = assertThrows(BibernateException.class, () -> EntityUtil.getIdField(BrokenPerson.class));
         assertEquals("Entity BrokenPerson must contain exactly one field annotated with @Id", ex.getMessage());
     }

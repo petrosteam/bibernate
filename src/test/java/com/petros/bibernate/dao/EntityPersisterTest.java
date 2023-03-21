@@ -2,6 +2,8 @@ package com.petros.bibernate.dao;
 
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Note;
+import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -156,6 +158,20 @@ public class EntityPersisterTest {
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
         assertThrows(BibernateException.class, () -> entityPersister.update(product), "ID field is null");
+    }
+
+    @Test
+    @DisplayName("Test the find method with @ManyToOne relation")
+    void testFindOneWithManyToOneRelation() throws NoSuchFieldException {
+        Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1);
+
+        Person noteOwner = note.getPerson();
+        assertNotNull(note);
+        assertNotNull(noteOwner);
+        assertEquals(1L, note.getId());
+        assertEquals("Body of Note-1", note.getBody());
+        assertEquals(1L, noteOwner.getId());
+        assertEquals("Oleg", noteOwner.getFirstName());
     }
 
 }

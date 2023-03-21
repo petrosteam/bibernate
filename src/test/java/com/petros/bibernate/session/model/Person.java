@@ -1,11 +1,13 @@
-package com.petros.bibernate.util.model;
+package com.petros.bibernate.session.model;
 
 import com.petros.bibernate.annotation.Column;
+import com.petros.bibernate.annotation.Entity;
 import com.petros.bibernate.annotation.Id;
 import com.petros.bibernate.annotation.Table;
+import lombok.Data;
 
-import java.math.BigDecimal;
-
+@Data
+@Entity
 @Table("persons")
 public class Person {
     @Id
@@ -13,7 +15,4 @@ public class Person {
 
     @Column("first_name")
     private String firstName;
-
-    @Column("price")
-    private BigDecimal price;
 }
