@@ -29,7 +29,10 @@ public class EntityPersisterTest {
     public void setUp() {
         // Create a database and run the Flyway migration
         DataSource dataSource = new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
-        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration/product-test-data").load().migrate();
+        Flyway flyway = Flyway.configure().dataSource(dataSource)
+                .locations("classpath:db/migration/product-test-data").load();
+        flyway.clean();
+        flyway.migrate();
         // Initialize the EntityPersister with the H2 data source
         entityPersister = new EntityPersister(dataSource);
     }
@@ -99,6 +102,60 @@ public class EntityPersisterTest {
     @Test
     public void testInsertNullEntity() {
         assertThrows(NullPointerException.class, () -> entityPersister.insert(null));
+    }
+
+    @Test
+    @DisplayName("Test the update method")
+    public void testUpdate() {
+
+        Product product = new Product();
+        product.setProductName("Nintendo Switch");
+        product.setProducer("Nintendo");
+        product.setPrice(BigDecimal.valueOf(29900, 2));
+
+        entityPersister.insert(product);
+
+        product.setProductName("Updated Product Name");
+        product.setProducer("Updated Producer");
+        product.setPrice(BigDecimal.valueOf(88800, 2));
+
+        entityPersister.update(product);
+
+        Product updatedProduct = entityPersister.findById(Product.class, product.getId());
+        assertNotNull(updatedProduct);
+        assertEquals(product.getId(), updatedProduct.getId());
+        assertEquals(product.getProductName(), updatedProduct.getProductName());
+        assertEquals(product.getProducer(), updatedProduct.getProducer());
+        assertEquals(product.getPrice(), updatedProduct.getPrice());
+    }
+
+    @Test
+    @DisplayName("Test the update method with a non-existing entity")
+    public void testUpdateNonExistingEntity() {
+        Product product = new Product();
+        product.setId(4L);
+        product.setProductName("Nintendo Switch");
+        product.setProducer("Nintendo");
+        product.setPrice(BigDecimal.valueOf(29900, 2));
+
+        assertThrows(BibernateException.class, () -> entityPersister.update(product), "Failed to update entity in the database");
+    }
+
+    @Test
+    @DisplayName("Test the update method with null entity")
+    public void testUpdateWithNullEntity() {
+        assertThrows(NullPointerException.class, () -> entityPersister.update(null));
+    }
+
+    @Test
+    @DisplayName("Test the update method with entity with null @Id field")
+    public void testUpdateEntityWithNullId() {
+        Product product = new Product();
+        product.setProductName("Nintendo Switch");
+        product.setProducer("Nintendo");
+        product.setPrice(BigDecimal.valueOf(29900, 2));
+
+        assertThrows(BibernateException.class, () -> entityPersister.update(product), "ID field is null");
     }
 
 }

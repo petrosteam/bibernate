@@ -4,6 +4,7 @@ CREATE TABLE products (
                           producer varchar(255) NOT NULL,
                           price decimal(10,2) NOT NULL,
                           PRIMARY KEY (id)
+                      -- todo add data with all SQL types and test it
 );
 
 INSERT INTO products(id, name, producer, price)
