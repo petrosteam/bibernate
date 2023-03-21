@@ -315,9 +315,12 @@ public class EntityPersisterTest {
         assertThrows(BibernateException.class, () -> entityPersister.delete(product), "ID field is null");
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test insert with @ManyToOne relation")
-    void testInsertWithManyToOneRelation() {
+    void testInsertWithManyToOneRelation(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Person personInDatabase = new Person();
         personInDatabase.setId(1L);
         personInDatabase.setFirstName("NewFirstName");
@@ -337,9 +340,12 @@ public class EntityPersisterTest {
         assertEquals(personInDatabase.getFirstName(), createdNote.getPerson().getFirstName());
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test insert with @ManyToOne relation failed")
-    void testInsertWithManyToOneRelationForNotExistedPerson() {
+    void testInsertWithManyToOneRelationForNotExistedPerson(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Person newPerson = new Person();
         newPerson.setId(5L);
         newPerson.setFirstName("PersonNotInTable");
@@ -351,9 +357,12 @@ public class EntityPersisterTest {
         assertThrows(BibernateException.class, () -> entityPersister.insert(newNote));
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the find method with @ManyToOne relation")
-    void testFindOneWithManyToOneRelation() throws NoSuchFieldException {
+    void testFindOneWithManyToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
         Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1);
 
         Person noteOwner = note.getPerson();
