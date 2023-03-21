@@ -6,11 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +43,8 @@ public class EntityPersister {
     private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "select * from %s where %s = ?;";
     private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "insert into %s(%s) values (%s);";
     private static final String UPDATE_BY_ID_TEMPLATE = "update %s set %s where %s = ?;";
+    private static final String DELETE_BY_ID_TEMPLATE = "delete from %s where %s = ?;";
+
 
     public EntityPersister(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -89,17 +95,11 @@ public class EntityPersister {
     public <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue) {
         List<T> result = new ArrayList<>();
 
-        try (var connection = dataSource.getConnection()) {
-            String tableName = getTableName(entityClass);
-            String columnName = getColumnName(field);
-            String query = String.format(FIND_ENTITY_BY_FIELD_NAME_TEMPLATE, tableName, columnName);
-
-            try (var statement = connection.prepareStatement(query)) {
-                statement.setObject(1, fieldValue);
-                ResultSet resultSet = statement.executeQuery();
-                while (resultSet.next()) {
-                    result.add(mapResultSetToEntity(entityClass, resultSet));
-                }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = prepareFindStatement(entityClass, field, fieldValue, connection)) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                result.add(mapResultSetToEntity(entityClass, resultSet));
             }
         } catch (SQLException e) {
             throw new BibernateException(e);
@@ -116,9 +116,8 @@ public class EntityPersister {
      **/
     public <T> T insert(T entity) {
         Objects.requireNonNull(entity);
-        try (var connection = dataSource.getConnection()) {
-            PreparedStatement insertStatement = prepareInsertStatement(entity, connection);
-
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement insertStatement = prepareInsertStatement(entity, connection)) {
             int rowsAffected = insertStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
@@ -138,9 +137,8 @@ public class EntityPersister {
      */
     public <T> T update(T entity) {
         Objects.requireNonNull(entity);
-        try (var connection = dataSource.getConnection()) {
-            PreparedStatement updateStatement = prepareUpdateStatement(entity, connection);
-
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement updateStatement = prepareUpdateStatement(entity, connection)) {
             int rowsAffected = updateStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to update entity in the database");
             return entity;
@@ -148,6 +146,50 @@ public class EntityPersister {
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
         }
+    }
+
+    /**
+     * Deletes an existing entity from the database.
+     *
+     * @param entity the entity to delete
+     * @param <T>    the type of the entity
+     * @return the deleted entity
+     */
+    public <T> T delete(T entity) {
+        Objects.requireNonNull(entity);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement deleteStatement = prepareDeleteStatement(entity, connection)) {
+            int rowsAffected = deleteStatement.executeUpdate();
+            throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to delete entity from the database");
+            return entity;
+
+        } catch (SQLException | IllegalAccessException e) {
+            throw new BibernateException(e);
+        }
+    }
+
+    private static <T> PreparedStatement prepareFindStatement(Class<T> entityClass, Field field, Object fieldValue,
+                                                              Connection connection) throws SQLException {
+        String tableName = getTableName(entityClass);
+        String columnName = getColumnName(field);
+        String query = String.format(FIND_ENTITY_BY_FIELD_NAME_TEMPLATE, tableName, columnName);
+        PreparedStatement statement = connection.prepareStatement(query);
+        statement.setObject(1, fieldValue);
+        return statement;
+    }
+
+    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
+            IllegalAccessException {
+        String tableName = getTableName(entity.getClass());
+        Field idField = getIdField(entity.getClass());
+        Object idValue = getIdValue(entity);
+        if (idValue == null) {
+            throw new BibernateException("ID field is null");
+        }
+        String deleteQuery = String.format(DELETE_BY_ID_TEMPLATE, tableName, getColumnName(idField));
+        PreparedStatement statement = connection.prepareStatement(deleteQuery);
+        statement.setObject(1, idValue);
+        return statement;
     }
 
     private static void throwExceptionIfRowsAffectedNotOne(int rowsAffected, String message) {
@@ -228,7 +270,7 @@ public class EntityPersister {
                         continue;
                     }
                     String columnName = getColumnName(entityField);
-                    entityField.set(entity, resultSet.getObject(columnName));
+                    entityField.set(entity, convertToJavaType(entityField, resultSet.getObject(columnName)));
                 } else if (isEntityField(entityField)) {
                     var relatedEntityClass = entityField.getType();
 
@@ -246,5 +288,43 @@ public class EntityPersister {
                  SQLException e) {
             throw new BibernateException(e);
         }
+    }
+
+    private static Object convertToJavaType(Field field, Object value) throws IllegalAccessException, SQLException {
+        if (value == null) {
+            return null;
+        }
+
+        Class<?> fieldType = field.getType();
+
+        if (fieldType.isAssignableFrom(value.getClass())) {
+            return value;
+        }
+
+        switch (fieldType.getSimpleName()) {
+            case "LocalDateTime" -> {
+                if (value instanceof Timestamp) {
+                    return ((Timestamp) value).toLocalDateTime();
+                }
+            }
+            case "String" -> {
+                if (value instanceof Clob clob) {
+                    return clob.getSubString(1, (int) clob.length());
+                }
+            }
+            case "LocalDate" -> {
+                if (value instanceof Date) {
+                    return ((Date) value).toLocalDate();
+                }
+            }
+            case "LocalTime" -> {
+                if (value instanceof Time) {
+                    return ((Time) value).toLocalTime();
+                }
+            }
+        }
+
+        throw new BibernateException(String.format("Cannot convert value of type %s to field type %s",
+                value.getClass().getSimpleName(), fieldType.getSimpleName()));
     }
 }
