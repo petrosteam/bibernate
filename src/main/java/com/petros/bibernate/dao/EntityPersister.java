@@ -1,10 +1,8 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
-import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
-import javax.sql.DataSource;
-import java.lang.reflect.Field;
+
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -52,7 +50,6 @@ public class EntityPersister {
      */
     public <T> T findById(Class<T> entityClass, Object idValue) {
         Field idField = getIdField(entityClass);
-        log.debug("Searching for {} entity by field = {} with id = {}", entityClass.getSimpleName(), idField.getName(), idValue);
         return findOne(entityClass, idField, idValue);
     }
 
@@ -225,15 +222,8 @@ public class EntityPersister {
                 entityField.set(entity, resultSet.getObject(columnName));
             }
             return entity;
-        } catch (InstantiationException e) {
-            throw new BibernateException(e);
-        } catch (IllegalAccessException e) {
-            throw new BibernateException(e);
-        } catch (InvocationTargetException e) {
-            throw new BibernateException(e);
-        } catch (NoSuchMethodException e) {
-            throw new BibernateException(e);
-        } catch (SQLException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
+                 SQLException e) {
             throw new BibernateException(e);
         }
     }
