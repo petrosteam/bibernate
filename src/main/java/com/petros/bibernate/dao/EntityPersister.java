@@ -1,6 +1,7 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
@@ -31,7 +32,6 @@ import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
 import static com.petros.bibernate.util.EntityUtil.isEntityField;
 import static com.petros.bibernate.util.EntityUtil.isRegularField;
 import static com.petros.bibernate.util.EntityUtil.getJoinColumnName;
-import static com.petros.bibernate.util.EntityUtil.hasEntityRelation;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -178,8 +178,9 @@ public class EntityPersister {
         return statement;
     }
 
-    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
+    private <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
             IllegalAccessException {
+        validateJoinColumnsOnDeleteOperation(entity);
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
         Object idValue = getIdValue(entity);
@@ -198,7 +199,8 @@ public class EntityPersister {
         }
     }
 
-    private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
+    private <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
+        validateJoinColumnsOnInsertOperation(entity);
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
         List<Object> values = getInsertableValues(entity);
@@ -209,6 +211,47 @@ public class EntityPersister {
         PreparedStatement statement = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
         setPreparedStatementValues(values, statement);
         return statement;
+    }
+
+    private <T> void validateJoinColumnsOnInsertOperation(T entity) {
+        for (var field : entity.getClass().getDeclaredFields()) {
+            if (EntityUtil.isEntityField(field)) {
+                try {
+                    field.setAccessible(true);
+                    var object = field.get(entity);
+                    var idValue = EntityUtil.getIdValue(object);
+                    var idField = EntityUtil.getIdField(object.getClass());
+                    var objectExists = findOne(object.getClass(), idField, idValue);
+                    if (objectExists == null) {
+                        throw new BibernateException("Insert in table: \"" + EntityUtil.getTableName(entity.getClass()) + "\" breaks foreign key restrictions. " +
+                                "Details: Key (" + idField.getName() + ") = (" + idValue + ") doesn't exist in table: \"" + EntityUtil.getTableName(object.getClass()) + "\"");
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new BibernateException(e);
+                }
+            }
+        }
+    }
+
+    //TODO: Add Exception handling
+    private <T> void validateJoinColumnsOnDeleteOperation(T entity) {
+        for (var field : entity.getClass().getDeclaredFields()) {
+            if (EntityUtil.isEntityField(field)) {
+                try {
+                    field.setAccessible(true);
+                    var object = field.get(entity);
+                    var idValue = EntityUtil.getIdValue(object);
+                    var idField = EntityUtil.getIdField(object.getClass());
+                    var objectExists = findOne(object.getClass(), idField, idValue);
+                    if (objectExists != null) {
+                        throw new BibernateException("Delete in table: \"" + EntityUtil.getTableName(entity.getClass()) + "\" breaks foreign key restrictions. " +
+                                "Details: Key (" + idField.getName() + ") = (" + idValue + ") still exists in table: \"" + EntityUtil.getTableName(object.getClass()) + "\"");
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new BibernateException(e);
+                }
+            }
+        }
     }
 
     private static <T> PreparedStatement prepareUpdateStatement(T entity, Connection connection) throws SQLException,
@@ -266,9 +309,6 @@ public class EntityPersister {
                 entityField.setAccessible(TRUE);
 
                 if (isRegularField(entityField)) {
-                    if (!hasEntityRelation(entityField)) {
-                        continue;
-                    }
                     String columnName = getColumnName(entityField);
                     entityField.set(entity, convertToJavaType(entityField, resultSet.getObject(columnName)));
                 } else if (isEntityField(entityField)) {

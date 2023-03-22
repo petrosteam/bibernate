@@ -33,10 +33,8 @@ VALUES (1, 'Play Station', 'Sony', 249.00, '2023-01-01 12:00:00', true, 100, 3.0
 
 INSERT INTO persons(id, first_name)
 VALUES (1, 'Oleg'),
-       (2, 'Stas'),
-       (3, 'Viktor');
+       (2, 'Viktor');
 
 INSERT INTO notes(id, body, person_id)
 VALUES (1, 'Body of Note-1', 1),
-       (2, 'Body of Note-2', 1),
-       (3, 'Body of Note-3',2);
+       (2, 'Body of Note-2', 2);

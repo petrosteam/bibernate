@@ -242,6 +242,59 @@ public class EntityPersisterTest {
 
         assertThrows(BibernateException.class, () -> entityPersister.delete(product), "ID field is null");
     }
+
+    @Test
+    @DisplayName("Test insert with @ManyToOne relation")
+    void testInsertWithManyToOneRelation() {
+        Person personInDatabase = new Person();
+        personInDatabase.setId(1L);
+        personInDatabase.setFirstName("NewFirstName");
+
+        Note newNote = new Note();
+        String noteBody = "New note Body!";
+        newNote.setBody(noteBody);
+        newNote.setPerson(personInDatabase);
+
+        Note createdNote = entityPersister.insert(newNote);
+
+        assertNotNull(createdNote);
+        assertNotNull(createdNote.getPerson());
+        assertNotNull(createdNote.getId());
+        assertEquals(noteBody, createdNote.getBody());
+        assertEquals(personInDatabase.getId(), createdNote.getPerson().getId());
+        assertEquals(personInDatabase.getFirstName(), createdNote.getPerson().getFirstName());
+    }
+
+    @Test
+    @DisplayName("Test insert with @ManyToOne relation failed")
+    void testInsertWithManyToOneRelationForNotExistedPerson() {
+        Person newPerson = new Person();
+        newPerson.setId(5L);
+        newPerson.setFirstName("PersonNotInTable");
+
+        Note newNote = new Note();
+        newNote.setBody("New note Body!");
+        newNote.setPerson(newPerson);
+
+        assertThrows(BibernateException.class, () -> entityPersister.insert(newNote));
+    }
+
+    @Test
+    @DisplayName("Test delete with @ManyToOne relation failed")
+    void testDeleteWithManyToOneRelationForStillExistedPerson() throws NoSuchFieldException {
+        Note noteToBeDeleted = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 2);
+        assertThrows(BibernateException.class, () -> entityPersister.delete(noteToBeDeleted));
+
+        Person relatedToNotePerson = entityPersister.findById(Person.class, 2L);
+        assertNotNull(relatedToNotePerson);
+        entityPersister.delete(relatedToNotePerson);
+        Person notFoundPerson = entityPersister.findById(Person.class, 2L);
+        assertNull(notFoundPerson);
+        entityPersister.delete(noteToBeDeleted);
+        Note notFoundNote = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 2);
+        assertNull(notFoundNote);
+    }
+
     @Test
     @DisplayName("Test the find method with @ManyToOne relation")
     void testFindOneWithManyToOneRelation() throws NoSuchFieldException {

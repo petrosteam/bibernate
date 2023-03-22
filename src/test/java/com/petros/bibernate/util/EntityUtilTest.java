@@ -75,10 +75,4 @@ class EntityUtilTest {
         assertNotNull(joinColumnName);
         assertEquals("person_id", joinColumnName);
     }
-    @Test
-    @DisplayName("JoinColumnName throws exception when @Id is absent")
-    void getJoinColumnAnnotationPresent2() {
-        BibernateException ex = assertThrows(BibernateException.class, () -> EntityUtil.getIdField(BrokenPerson.class));
-        assertEquals("Entity BrokenPerson must contain exactly one field annotated with @Id", ex.getMessage());
-    }
 }

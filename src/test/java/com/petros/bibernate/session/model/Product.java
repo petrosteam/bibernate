@@ -23,10 +23,8 @@ public class Product {
     @Column("name")
     private String productName;
 
-    @Column("producer")
     private String producer;
 
-    @Column("price")
     private BigDecimal price;
 
     @Column("created_at")

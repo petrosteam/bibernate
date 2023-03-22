@@ -35,9 +35,15 @@ public class EntityUtil {
      * @return the column name
      */
     public static String getColumnName(Field field) {
-        return ofNullable(field.getAnnotation(Column.class))
-                .map(Column::value)
-                .orElse(field.getName());
+        if (EntityUtil.isEntityField(field)) {
+            return ofNullable(field.getAnnotation(JoinColumn.class))
+                    .map(JoinColumn::value)
+                    .orElse(getDefaultIdColumnName(field.getName()));
+        } else {
+            return ofNullable(field.getAnnotation(Column.class))
+                    .map(Column::value)
+                    .orElse(field.getName());
+        }
     }
 
     /**
@@ -49,7 +55,7 @@ public class EntityUtil {
     public static String getJoinColumnName(Field field) {
         return ofNullable(field.getAnnotation(JoinColumn.class))
                 .map(JoinColumn::value)
-                .orElse(field.getName());
+                .orElse(getDefaultIdColumnName(field.getName()));
     }
 
     /**
@@ -120,7 +126,12 @@ public class EntityUtil {
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
                     try {
-                        return field.get(entity);
+                        if (EntityUtil.isEntityField(field)) {
+                            var nestedEntity = field.get(entity);
+                            return EntityUtil.getIdValue(nestedEntity);
+                        } else {
+                            return field.get(entity);
+                        }
                     } catch (IllegalAccessException e) {
                         throw new BibernateException(e);
                     }
@@ -164,18 +175,6 @@ public class EntityUtil {
     }
 
     /**
-     * Checks if field has a representation in relation database.
-     *
-     * @param field
-     * @return true if field has relation to DB entity
-     */
-    public static boolean hasEntityRelation(Field field) {
-        return Arrays.stream(field.getAnnotations())
-                .anyMatch(a -> a.annotationType().isAssignableFrom(Column.class)
-                        || a.annotationType().isAssignableFrom(Id.class));
-    }
-
-    /**
      * Checks if value is annotated with one of annotations
      * that means complicated entity relations
      *
@@ -195,6 +194,10 @@ public class EntityUtil {
      */
     public static boolean isEntityField(Field field) {
         return field.isAnnotationPresent(ManyToOne.class);
+    }
+
+    private static String getDefaultIdColumnName(String fieldName) {
+        return fieldName + "_id";
     }
 
 }
