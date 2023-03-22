@@ -39,6 +39,13 @@ public interface PersistenceContext {
     <T> void snapshot(T entity, Object[] values);
 
     /**
+     * Removing entity from context
+     * @param entity Bibernate entity
+     * @param <T> entity type
+     */
+    <T> void remove(T entity);
+
+    /**
      * Clearing entity cache and snapshots
      */
     void clear();

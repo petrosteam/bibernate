@@ -25,22 +25,32 @@ public class PersistenceContextImpl implements PersistenceContext {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T cache(T entity) {
-        var id = EntityUtil.getIdFieldValue(entity);
-        var key = EntityKey.of(entity.getClass(), id);
+        var key = this.getKey(entity);
         return (T) Optional.ofNullable(entityCache.putIfAbsent(key, entity))
                 .orElse(entity);
     }
 
     @Override
     public <T> void snapshot(T entity, Object[] values) {
-        var id = EntityUtil.getIdFieldValue(entity);
-        var key = EntityKey.of(entity.getClass(), id);
+        var key = this.getKey(entity);
         snapshot.put(key, values);
+    }
+
+    @Override
+    public <T> void remove(T entity) {
+        var key = this.getKey(entity);
+        this.snapshot.remove(key);
+        this.entityCache.remove(key);
     }
 
     @Override
     public void clear() {
         this.entityCache.clear();
         this.snapshot.clear();
+    }
+
+    private <T> EntityKey getKey(T entity) {
+        var id = EntityUtil.getIdValue(entity);
+        return EntityKey.of(entity.getClass(), id);
     }
 }

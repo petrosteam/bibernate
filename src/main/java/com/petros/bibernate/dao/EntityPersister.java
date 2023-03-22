@@ -8,17 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
-import java.sql.*;
 import java.lang.reflect.InvocationTargetException;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -118,7 +109,7 @@ public class EntityPersister {
             int rowsAffected = insertStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
-            persistenceContext.snapshot(entity, EntityUtil.getInsertableValues(entity, false).toArray());
+            persistenceContext.snapshot(entity, EntityUtil.getEntityFields(entity, false).toArray());
             return persistenceContext.cache(entity);
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
@@ -158,9 +149,9 @@ public class EntityPersister {
              PreparedStatement deleteStatement = prepareDeleteStatement(entity, connection)) {
             int rowsAffected = deleteStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to delete entity from the database");
+            persistenceContext.remove(entity);
             return entity;
-
-        } catch (SQLException | IllegalAccessException e) {
+        } catch (SQLException e) {
             throw new BibernateException(e);
         }
     }
@@ -175,8 +166,7 @@ public class EntityPersister {
         return statement;
     }
 
-    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
-            IllegalAccessException {
+    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
         Object idValue = getIdValue(entity);
@@ -198,7 +188,7 @@ public class EntityPersister {
     private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
-        List<Object> values = getInsertableValues(entity, true);
+        List<Object> values = getEntityFields(entity, true);
         String insertPlaceHolders = getInsertPlaceholders(columns);
         String insertQuery = String.format(INSERT_INTO_TABLE_VALUES_TEMPLATE, tableName,
                 String.join(", ", columns), insertPlaceHolders);
@@ -217,7 +207,7 @@ public class EntityPersister {
             throw new BibernateException("ID field is null");
         }
         List<String> updateColumns = getUpdatableColumns(entity);
-        List<Object> updateValues = getUpdatableValues(entity);
+        List<Object> updateValues = getEntityFields(entity, true);
 
         String updateQuery = String.format(UPDATE_BY_ID_TEMPLATE, tableName,
                 getUpdatePlaceholders(updateColumns), getColumnName(idField));
@@ -263,7 +253,8 @@ public class EntityPersister {
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
                 String columnName = getColumnName(entityField);
-                entityField.set(entity, convertToJavaType(entityField, resultSet.getObject(columnName)));
+                var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
+                entityField.set(entity, columnValue);
                 fieldValues.add(columnValue);
             }
             persistenceContext.snapshot(entity, fieldValues.toArray());

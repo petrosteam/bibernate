@@ -64,13 +64,16 @@ public class EntityUtil {
      *
      * @param entity the entity from which to retrieve the {@link Id} field value
      * @return the value of the field marked with {@link Id}
-     * @throws IllegalAccessException if the field is inaccessible
      */
-    public static Object getIdValue(Object entity) throws IllegalAccessException {
+    public static Object getIdValue(Object entity) {
         var entityClass = entity.getClass();
         var idField = getIdField(entityClass);
         idField.setAccessible(true);
-        return idField.get(entity);
+        try {
+            return idField.get(entity);
+        } catch (IllegalAccessException e) {
+            throw new BibernateException("Could not retrieve ID from entity " + entity.getClass().getSimpleName(), e);
+        }
     }
 
     /**
@@ -99,15 +102,15 @@ public class EntityUtil {
 
 
     /**
-     * Retrieves the list of insertable values for a given entity.
-     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     * Retrieves the list of entity values for a given entity.
      *
-     * @param entity the entity for which to retrieve the insertable values
-     * @return the list of insertable values
+     * @param entity   the entity for which to retrieve the insertable values
+     * @param ignoreId specifies should we ignore fields marked with @Id annotation or not
+     * @return the list of entity values
      */
-    public static List<Object> getInsertableValues(Object entity, boolean ignoreId) {
+    public static List<Object> getEntityFields(Object entity, boolean ignoreId) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
-                .filter(field -> !isIdField(field) && ignoreId)
+                .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
                     try {
@@ -130,27 +133,6 @@ public class EntityUtil {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .map(EntityUtil::getColumnName)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Retrieves the list of updatable values for a given entity.
-     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
-     *
-     * @param entity the entity for which to retrieve the updatable values
-     * @return the list of updatable values
-     */
-    public static <T> List<Object> getUpdatableValues(T entity) {
-        return Arrays.stream(entity.getClass().getDeclaredFields())
-                .filter(field -> !isIdField(field))
-                .map(f -> {
-                    try {
-                        f.setAccessible(true);
-                        return f.get(entity);
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
-                    }
-                })
                 .collect(Collectors.toList());
     }
 }
