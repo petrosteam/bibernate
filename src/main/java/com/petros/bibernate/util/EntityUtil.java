@@ -13,6 +13,9 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
+/**
+ * A utility class for working with database entities.
+ */
 public class EntityUtil {
 
     /**
@@ -56,20 +59,37 @@ public class EntityUtil {
         return idFields.get(0);
     }
 
-    public static Object getIdFieldValue(Object entity) {
-        var field = getIdField(entity.getClass());
-        try {
-            field.setAccessible(true);
-            return field.get(entity);
-        } catch (IllegalAccessException e) {
-            throw new BibernateException("Could not get ID from " + getTableName(entity.getClass()), e);
-        }
+    /**
+     * Retrieves the value of the field annotated with {@link Id} from a given entity.
+     *
+     * @param entity the entity from which to retrieve the {@link Id} field value
+     * @return the value of the field marked with {@link Id}
+     * @throws IllegalAccessException if the field is inaccessible
+     */
+    public static Object getIdValue(Object entity) throws IllegalAccessException {
+        var entityClass = entity.getClass();
+        var idField = getIdField(entityClass);
+        idField.setAccessible(true);
+        return idField.get(entity);
     }
 
+    /**
+     * Determines whether a field is annotated with {@link Id}.
+     *
+     * @param field the field to check
+     * @return true if the field is annotated with {@link Id}, false otherwise
+     */
     public static boolean isIdField(Field field) {
         return field.isAnnotationPresent(Id.class);
     }
 
+    /**
+     * Retrieves the list of columns that are insertable for a given entity class.
+     * Columns annotated with {@link Id} are excluded from the list.
+     *
+     * @param entityClass the entity class for which to retrieve the insertable columns
+     * @return the list of insertable columns
+     */
     public static List<String> getInsertableColumns(Class<?> entityClass) {
         return Arrays.stream(entityClass.getDeclaredFields())
                 .filter(field -> !isIdField(field))
@@ -77,6 +97,14 @@ public class EntityUtil {
                 .collect(Collectors.toList());
     }
 
+
+    /**
+     * Retrieves the list of insertable values for a given entity.
+     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     *
+     * @param entity the entity for which to retrieve the insertable values
+     * @return the list of insertable values
+     */
     public static List<Object> getInsertableValues(Object entity, boolean ignoreId) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field) && ignoreId)
@@ -84,6 +112,41 @@ public class EntityUtil {
                 .map(field -> {
                     try {
                         return field.get(entity);
+                    } catch (IllegalAccessException e) {
+                        throw new BibernateException(e);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves the list of updatable columns for a given entity.
+     * Columns corresponding to fields annotated with {@link Id} are excluded from the list.
+     *
+     * @param entity the entity for which to retrieve the updatable columns
+     * @return the list of updatable columns
+     */
+    public static <T> List<String> getUpdatableColumns(T entity) {
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .filter(field -> !isIdField(field))
+                .map(EntityUtil::getColumnName)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves the list of updatable values for a given entity.
+     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     *
+     * @param entity the entity for which to retrieve the updatable values
+     * @return the list of updatable values
+     */
+    public static <T> List<Object> getUpdatableValues(T entity) {
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .filter(field -> !isIdField(field))
+                .map(f -> {
+                    try {
+                        f.setAccessible(true);
+                        return f.get(entity);
                     } catch (IllegalAccessException e) {
                         throw new BibernateException(e);
                     }
