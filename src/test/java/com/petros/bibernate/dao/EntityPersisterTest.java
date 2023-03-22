@@ -280,22 +280,6 @@ public class EntityPersisterTest {
     }
 
     @Test
-    @DisplayName("Test delete with @ManyToOne relation failed")
-    void testDeleteWithManyToOneRelationForStillExistedPerson() throws NoSuchFieldException {
-        Note noteToBeDeleted = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 2);
-        assertThrows(BibernateException.class, () -> entityPersister.delete(noteToBeDeleted));
-
-        Person relatedToNotePerson = entityPersister.findById(Person.class, 2L);
-        assertNotNull(relatedToNotePerson);
-        entityPersister.delete(relatedToNotePerson);
-        Person notFoundPerson = entityPersister.findById(Person.class, 2L);
-        assertNull(notFoundPerson);
-        entityPersister.delete(noteToBeDeleted);
-        Note notFoundNote = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 2);
-        assertNull(notFoundNote);
-    }
-
-    @Test
     @DisplayName("Test the find method with @ManyToOne relation")
     void testFindOneWithManyToOneRelation() throws NoSuchFieldException {
         Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1);

@@ -23,7 +23,8 @@ CREATE TABLE notes
     id        bigint auto_increment,
     body      varchar(255) NOT NULL,
     person_id bigint NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (person_id) REFERENCES persons(id)
 );
 
 INSERT INTO products(id, name, producer, price, created_at, is_available, stock_count, weight, description, sale_date, sale_time)

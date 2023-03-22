@@ -180,7 +180,6 @@ public class EntityPersister {
 
     private <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
             IllegalAccessException {
-        validateJoinColumnsOnDeleteOperation(entity);
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
         Object idValue = getIdValue(entity);
@@ -225,27 +224,6 @@ public class EntityPersister {
                     if (objectExists == null) {
                         throw new BibernateException("Insert in table: \"" + EntityUtil.getTableName(entity.getClass()) + "\" breaks foreign key restrictions. " +
                                 "Details: Key (" + idField.getName() + ") = (" + idValue + ") doesn't exist in table: \"" + EntityUtil.getTableName(object.getClass()) + "\"");
-                    }
-                } catch (IllegalAccessException e) {
-                    throw new BibernateException(e);
-                }
-            }
-        }
-    }
-
-    //TODO: Add Exception handling
-    private <T> void validateJoinColumnsOnDeleteOperation(T entity) {
-        for (var field : entity.getClass().getDeclaredFields()) {
-            if (EntityUtil.isEntityField(field)) {
-                try {
-                    field.setAccessible(true);
-                    var object = field.get(entity);
-                    var idValue = EntityUtil.getIdValue(object);
-                    var idField = EntityUtil.getIdField(object.getClass());
-                    var objectExists = findOne(object.getClass(), idField, idValue);
-                    if (objectExists != null) {
-                        throw new BibernateException("Delete in table: \"" + EntityUtil.getTableName(entity.getClass()) + "\" breaks foreign key restrictions. " +
-                                "Details: Key (" + idField.getName() + ") = (" + idValue + ") still exists in table: \"" + EntityUtil.getTableName(object.getClass()) + "\"");
                     }
                 } catch (IllegalAccessException e) {
                     throw new BibernateException(e);
