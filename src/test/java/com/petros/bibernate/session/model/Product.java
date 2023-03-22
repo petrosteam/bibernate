@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -23,4 +26,25 @@ public class Product {
     private String producer;
 
     private BigDecimal price;
+
+    @Column("created_at")
+    private LocalDateTime createdAt;
+
+    @Column("is_available")
+    private Boolean isAvailable;
+
+    @Column("stock_count")
+    private Integer stockCount;
+
+    @Column("weight")
+    private Double weight;
+
+    @Column("description")
+    private String description;
+
+    @Column("sale_date")
+    private LocalDate saleDate;
+
+    @Column("sale_time")
+    private LocalTime saleTime;
 }
