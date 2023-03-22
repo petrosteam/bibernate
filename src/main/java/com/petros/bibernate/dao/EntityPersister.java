@@ -1,28 +1,20 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.context.PersistenceContext;
+import com.petros.bibernate.session.context.PersistenceContextImpl;
 import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
+
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
-import javax.sql.DataSource;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.petros.bibernate.util.EntityUtil.getColumnName;
-import static com.petros.bibernate.util.EntityUtil.getIdField;
-import static com.petros.bibernate.util.EntityUtil.getInsertableColumns;
-import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
-import static com.petros.bibernate.util.EntityUtil.getTableName;
+import static com.petros.bibernate.util.EntityUtil.*;
 import static java.lang.Boolean.TRUE;
 
 @Slf4j
@@ -31,14 +23,18 @@ public class EntityPersister {
     private static final String FIND_ENTITY_BY_FIELD_NAME = "select * from %s where %s = ?;";
     private static final String INSERT_INTO_TABLE_VALUES = "insert into %s(%s) values (%s);";
 
+    private final PersistenceContext persistenceContext;
+
     public EntityPersister(DataSource dataSource) {
         this.dataSource = dataSource;
+        persistenceContext = new PersistenceContextImpl();
     }
 
     public <T> T findById(Class<T> entityClass, Object idValue) {
         Field idField = EntityUtil.getIdField(entityClass);
         log.debug("Searching for {} entity by field = {} with id = {}", entityClass.getSimpleName(), idField.getName(), idValue);
-        return findOne(entityClass, idField, idValue);
+        return persistenceContext.getCachedEntity(entityClass, idValue)
+                .orElseGet(() -> this.findOne(entityClass, idField, idValue));
     }
 
     public <T> T findOne(Class<T> entityClass, Field field, Object fieldValue) {
@@ -84,8 +80,8 @@ public class EntityPersister {
                 throw new BibernateException("Failed to insert entity into the database");
             }
             setIdFromGeneratedKeys(entity, insertStatement);
-            return entity;
-
+            persistenceContext.snapshot(entity, EntityUtil.getInsertableValues(entity, false).toArray());
+            return persistenceContext.cache(entity);
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
         }
@@ -94,7 +90,7 @@ public class EntityPersister {
     private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
-        List<Object> values = getInsertableValues(entity);
+        List<Object> values = getInsertableValues(entity, true);
         String insertPlaceHolders = getInsertPlaceholders(columns);
         String insertQuery = String.format(INSERT_INTO_TABLE_VALUES, tableName, String.join(", ", columns),
                 insertPlaceHolders);
@@ -127,8 +123,9 @@ public class EntityPersister {
                 .collect(Collectors.joining(","));
     }
 
-    private static <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
+    private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
         try {
+            var fieldValues = new ArrayList<>();
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
@@ -136,10 +133,17 @@ public class EntityPersister {
                 Object columnValue = resultSet.getObject(columnName);
                 log.trace("Setting DB->Object, class = {}, field = {}, value = {}", entityClass.getSimpleName(), columnName, columnValue);
                 entityField.set(entity, columnValue);
+                fieldValues.add(columnValue);
             }
-            return entity;
+            persistenceContext.snapshot(entity, fieldValues.toArray());
+            return persistenceContext.cache(entity);
         } catch (Exception e) {
             throw new BibernateException(e);
         }
+    }
+
+    public void close() {
+        log.trace("Clearing cache...");
+        persistenceContext.clear();
     }
 }

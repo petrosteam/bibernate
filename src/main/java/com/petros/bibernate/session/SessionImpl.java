@@ -8,7 +8,6 @@ import javax.sql.DataSource;
 public class SessionImpl implements Session {
     private final EntityPersister entityPersister;
 
-
     public SessionImpl(DataSource dataSource) {
         this.entityPersister = new EntityPersister(dataSource);
     }
@@ -35,6 +34,6 @@ public class SessionImpl implements Session {
 
     @Override
     public void close() {
-
+        entityPersister.close();
     }
 }

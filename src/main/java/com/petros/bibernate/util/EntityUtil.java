@@ -17,6 +17,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the database table name from a given entity type. Returns the value of annotation @Table if exists, otherwise simple class name is returned
+     *
      * @param entityClass entity class that is mapped to database table
      * @return the table name
      */
@@ -28,6 +29,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the database column name from a given class field. Returns the value of annotation @Column if exists, otherwise simple field name is returned
+     *
      * @param field field that is mapped to database column
      * @return the column name
      */
@@ -39,6 +41,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the field annotated with @Id from a given entity class.
+     *
      * @param entityClass entity class that is mapped to database table
      * @return the field marked with @Id
      */
@@ -53,6 +56,16 @@ public class EntityUtil {
         return idFields.get(0);
     }
 
+    public static Object getIdFieldValue(Object entity) {
+        var field = getIdField(entity.getClass());
+        try {
+            field.setAccessible(true);
+            return field.get(entity);
+        } catch (IllegalAccessException e) {
+            throw new BibernateException("Could not get ID from " + getTableName(entity.getClass()), e);
+        }
+    }
+
     public static boolean isIdField(Field field) {
         return field.isAnnotationPresent(Id.class);
     }
@@ -64,9 +77,9 @@ public class EntityUtil {
                 .collect(Collectors.toList());
     }
 
-    public static List<Object> getInsertableValues(Object entity)  {
+    public static List<Object> getInsertableValues(Object entity, boolean ignoreId) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
-                .filter(field -> !isIdField(field))
+                .filter(field -> !isIdField(field) && ignoreId)
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
                     try {

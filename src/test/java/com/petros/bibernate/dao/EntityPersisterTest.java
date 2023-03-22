@@ -94,6 +94,18 @@ public class EntityPersisterTest {
         assertNotNull(insertedProduct.getId());
         assertEquals(4L, insertedProduct.getId());
         assertEquals(product, insertedProduct);
+
+        Product selectedProduct = entityPersister.findById(Product.class, insertedProduct.getId());
+        assertSame(insertedProduct, selectedProduct);
+    }
+
+
+    @Test
+    @DisplayName("Testing 1st level cache: select operation")
+    public void testPersistenceContextCache() {
+        Product product = entityPersister.findById(Product.class, 1L);
+        Product theSameProduct = entityPersister.findById(Product.class, 1L);
+        assertSame(product, theSameProduct);
     }
 
     @Test
