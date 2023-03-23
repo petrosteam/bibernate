@@ -21,9 +21,9 @@ class PropertiesLoaderTypeTest {
     @DisplayName("Check that property username is present and returned")
     @ParameterizedTest
     @CsvSource({
-            "username, username",
-            "password, password",
-            "jdbc-url, jdbc:h2:mem:test",
+            "bibernate.jdbc.url, jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+            "bibernate.jdbc.username, sa",
+            "bibernate.jdbc.password, ''",
     })
     void getPropertyNameThenSuccess(String propertyName, String propertyValue) {
         var actualPropertyValue = readPropertiesFromPropFile.getProperties()

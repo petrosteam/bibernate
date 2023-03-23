@@ -3,17 +3,13 @@ package com.petros.bibernate.session;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 
-import javax.sql.DataSource;
-
 public class SessionFactoryImpl implements SessionFactory {
 
-    public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;";
-    public static final String DATABASE_USERNAME = "sa";
-    public static final String DATABASE_PASSWORD = "";
-    private final DataSource dataSource;
+    private final BibernateDataSource dataSource;
+    private boolean closed = false;
 
     public SessionFactoryImpl() {
-        this.dataSource = initializeDataSource();
+        this.dataSource = new BibernateDataSource();
     }
 
     @Override
@@ -23,15 +19,13 @@ public class SessionFactoryImpl implements SessionFactory {
 
     @Override
     public void close() throws BibernateException {
-
+        closed = true;
+        dataSource.close();
     }
 
     @Override
     public boolean isClosed() {
-        return false;
+        return closed;
     }
 
-    private static DataSource initializeDataSource() {
-        return new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
-    }
 }

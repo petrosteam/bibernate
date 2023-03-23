@@ -9,10 +9,19 @@ import java.util.logging.Logger;
 
 public class BibernateDataSource implements DataSource {
 
+    private static final String DEFAULT_PROPERTIES_PATH = "src/main/resources/application.properties";
     private final BibernateConnectionPool connectionPool;
 
-    public BibernateDataSource(String url, String username, String password) {
-        this.connectionPool = new BibernateConnectionPool(url, username, password);
+    public BibernateDataSource() {
+        this.connectionPool = new BibernateConnectionPool(DEFAULT_PROPERTIES_PATH);
+    }
+
+    public BibernateDataSource(String configPath) {
+        this.connectionPool = new BibernateConnectionPool(configPath);
+    }
+
+    public void close() {
+        connectionPool.close();
     }
 
     @Override

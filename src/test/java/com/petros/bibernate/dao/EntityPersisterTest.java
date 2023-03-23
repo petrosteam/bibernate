@@ -4,11 +4,11 @@ import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,26 +22,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EntityPersisterTest {
-    public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
-    public static final String DATABASE_USERNAME = "sa";
-    public static final String DATABASE_PASSWORD = "";
 
-    // TODO: 18.03.2023 After Configuration class created, grab properties from file
-//    public static final String DATABASE_URL = "jdbc:postgresql://localhost:5432/postgres";
-//    public static final String DATABASE_USERNAME = "postgres";
-//    public static final String DATABASE_PASSWORD = "123qwe";
     private EntityPersister entityPersister;
+    private BibernateDataSource dataSource;
 
     @BeforeEach
     public void setUp() {
         // Create a database and run the Flyway migration
-        DataSource dataSource = new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
+        dataSource = new BibernateDataSource("src/test/resources/application.properties");
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data").load();
         flyway.clean();
         flyway.migrate();
         // Initialize the EntityPersister with the H2 data source
         entityPersister = new EntityPersister(dataSource);
+    }
+
+    @AfterEach
+    public void shoutDown() {
+        dataSource.close();
     }
 
     @Test

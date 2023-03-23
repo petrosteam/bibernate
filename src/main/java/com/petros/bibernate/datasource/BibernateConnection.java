@@ -231,8 +231,12 @@ public class BibernateConnection implements Connection {
      * @throws SQLException if a database access error occurs
      */
     @Override
-    public void close() throws SQLException {
+    public void close() {
         connectionPool.add(this);
+    }
+
+    public void closePhysical() throws SQLException {
+        connection.close();
     }
 
     /**
