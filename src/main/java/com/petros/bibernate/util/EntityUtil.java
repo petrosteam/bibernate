@@ -128,7 +128,7 @@ public class EntityUtil {
                     try {
                         if (EntityUtil.isEntityField(field)) {
                             var nestedEntity = field.get(entity);
-                            return EntityUtil.getIdValue(nestedEntity);
+                            return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
                         } else {
                             return field.get(entity);
                         }

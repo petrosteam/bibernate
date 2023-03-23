@@ -218,6 +218,9 @@ public class EntityPersister {
                 try {
                     field.setAccessible(true);
                     var object = field.get(entity);
+                    if (object == null){
+                        continue;
+                    }
                     var idValue = EntityUtil.getIdValue(object);
                     var idField = EntityUtil.getIdField(object.getClass());
                     var objectExists = findOne(object.getClass(), idField, idValue);
