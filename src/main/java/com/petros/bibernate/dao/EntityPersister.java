@@ -6,28 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.petros.bibernate.util.EntityUtil.getColumnName;
-import static com.petros.bibernate.util.EntityUtil.getIdField;
-import static com.petros.bibernate.util.EntityUtil.getIdValue;
-import static com.petros.bibernate.util.EntityUtil.getInsertableColumns;
-import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
-import static com.petros.bibernate.util.EntityUtil.getTableName;
-import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
-import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
+import static com.petros.bibernate.util.EntityUtil.*;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -40,7 +25,6 @@ public class EntityPersister {
     private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "insert into %s(%s) values (%s);";
     private static final String UPDATE_BY_ID_TEMPLATE = "update %s set %s where %s = ?;";
     private static final String DELETE_BY_ID_TEMPLATE = "delete from %s where %s = ?;";
-
 
     public EntityPersister(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -56,7 +40,7 @@ public class EntityPersister {
      */
     public <T> T findById(Class<T> entityClass, Object idValue) {
         Field idField = getIdField(entityClass);
-        return findOne(entityClass, idField, idValue);
+        return this.findOne(entityClass, idField, idValue);
     }
 
     /**
@@ -111,14 +95,13 @@ public class EntityPersister {
      * @return the inserted entity with the generated identifier
      **/
     public <T> T insert(T entity) {
-        Objects.requireNonNull(entity);
+        Objects.requireNonNull(entity, "Entity should not be null");
         try (Connection connection = dataSource.getConnection();
              PreparedStatement insertStatement = prepareInsertStatement(entity, connection)) {
             int rowsAffected = insertStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
             return entity;
-
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
         }
@@ -158,8 +141,7 @@ public class EntityPersister {
             int rowsAffected = deleteStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to delete entity from the database");
             return entity;
-
-        } catch (SQLException | IllegalAccessException e) {
+        } catch (SQLException e) {
             throw new BibernateException(e);
         }
     }
@@ -174,8 +156,7 @@ public class EntityPersister {
         return statement;
     }
 
-    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
-            IllegalAccessException {
+    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
         Object idValue = getIdValue(entity);
@@ -255,13 +236,14 @@ public class EntityPersister {
                 .collect(Collectors.joining(", "));
     }
 
-    private static <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
+    private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
         try {
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
                 String columnName = getColumnName(entityField);
-                entityField.set(entity, convertToJavaType(entityField, resultSet.getObject(columnName)));
+                var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
+                entityField.set(entity, columnValue);
             }
             return entity;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
