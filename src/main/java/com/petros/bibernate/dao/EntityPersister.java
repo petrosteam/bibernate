@@ -238,14 +238,12 @@ public class EntityPersister {
 
     private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
         try {
-            var fieldValues = new ArrayList<>();
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
                 String columnName = getColumnName(entityField);
                 var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
                 entityField.set(entity, columnValue);
-                fieldValues.add(columnValue);
             }
             return entity;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
