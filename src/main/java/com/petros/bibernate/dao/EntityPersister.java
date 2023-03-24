@@ -178,7 +178,7 @@ public class EntityPersister {
         return statement;
     }
 
-    private <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
+    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException,
             IllegalAccessException {
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
@@ -341,6 +341,11 @@ public class EntityPersister {
             case "LocalTime" -> {
                 if (value instanceof Time) {
                     return ((Time) value).toLocalTime();
+                }
+            }
+            case "Double" -> {
+                if (value instanceof Float) {
+                    return ((Float) value).doubleValue();
                 }
             }
         }
