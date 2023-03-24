@@ -33,10 +33,9 @@ public interface PersistenceContext {
      * Adding entity column values to snapshot
      *
      * @param entity Bibernate entity
-     * @param values entity actual column values
      * @param <T>    entity type
      */
-    <T> void snapshot(T entity, Object[] values);
+    <T> void snapshot(T entity);
 
     /**
      * Removing entity from context

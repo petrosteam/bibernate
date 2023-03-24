@@ -133,18 +133,6 @@ public class EntityPersisterTest {
         assertEquals(product.getDescription(), foundProduct.getDescription());
         assertEquals(product.getSaleDate(), foundProduct.getSaleDate());
         assertEquals(product.getSaleTime(), foundProduct.getSaleTime());
-
-        Product selectedProduct = entityPersister.findById(Product.class, insertedProduct.getId());
-        assertSame(insertedProduct, selectedProduct);
-    }
-
-
-    @Test
-    @DisplayName("Testing 1st level cache: select operation")
-    public void testPersistenceContextCache() {
-        Product product = entityPersister.findById(Product.class, 1L);
-        Product theSameProduct = entityPersister.findById(Product.class, 1L);
-        assertSame(product, theSameProduct);
     }
 
     @Test

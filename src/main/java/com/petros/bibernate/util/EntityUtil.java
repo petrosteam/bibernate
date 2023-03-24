@@ -100,6 +100,15 @@ public class EntityUtil {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Getting entity fields without id (field marked with @Id annotation)
+     *
+     * @param entity Bibernate entity
+     * @return list of field values
+     */
+    public static List<Object> getEntityFields(Object entity) {
+        return getEntityFields(entity, true);
+    }
 
     /**
      * Retrieves the list of entity values for a given entity.

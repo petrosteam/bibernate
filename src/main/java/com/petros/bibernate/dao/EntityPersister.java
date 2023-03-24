@@ -1,9 +1,6 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
-import com.petros.bibernate.session.context.PersistenceContext;
-import com.petros.bibernate.session.context.PersistenceContextImpl;
-import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
@@ -29,12 +26,8 @@ public class EntityPersister {
     private static final String UPDATE_BY_ID_TEMPLATE = "update %s set %s where %s = ?;";
     private static final String DELETE_BY_ID_TEMPLATE = "delete from %s where %s = ?;";
 
-
-    private final PersistenceContext persistenceContext;
-
     public EntityPersister(DataSource dataSource) {
         this.dataSource = dataSource;
-        persistenceContext = new PersistenceContextImpl();
     }
 
     /**
@@ -47,8 +40,7 @@ public class EntityPersister {
      */
     public <T> T findById(Class<T> entityClass, Object idValue) {
         Field idField = getIdField(entityClass);
-        return persistenceContext.getCachedEntity(entityClass, idValue)
-                .orElseGet(() -> this.findOne(entityClass, idField, idValue));
+        return this.findOne(entityClass, idField, idValue);
     }
 
     /**
@@ -103,14 +95,13 @@ public class EntityPersister {
      * @return the inserted entity with the generated identifier
      **/
     public <T> T insert(T entity) {
-        Objects.requireNonNull(entity);
+        Objects.requireNonNull(entity, "Entity should not be null");
         try (Connection connection = dataSource.getConnection();
              PreparedStatement insertStatement = prepareInsertStatement(entity, connection)) {
             int rowsAffected = insertStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
-            persistenceContext.snapshot(entity, EntityUtil.getEntityFields(entity, false).toArray());
-            return persistenceContext.cache(entity);
+            return entity;
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
         }
@@ -149,7 +140,6 @@ public class EntityPersister {
              PreparedStatement deleteStatement = prepareDeleteStatement(entity, connection)) {
             int rowsAffected = deleteStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to delete entity from the database");
-            persistenceContext.remove(entity);
             return entity;
         } catch (SQLException e) {
             throw new BibernateException(e);
@@ -188,7 +178,7 @@ public class EntityPersister {
     private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
-        List<Object> values = getEntityFields(entity, true);
+        List<Object> values = getEntityFields(entity);
         String insertPlaceHolders = getInsertPlaceholders(columns);
         String insertQuery = String.format(INSERT_INTO_TABLE_VALUES_TEMPLATE, tableName,
                 String.join(", ", columns), insertPlaceHolders);
@@ -207,7 +197,7 @@ public class EntityPersister {
             throw new BibernateException("ID field is null");
         }
         List<String> updateColumns = getUpdatableColumns(entity);
-        List<Object> updateValues = getEntityFields(entity, true);
+        List<Object> updateValues = getEntityFields(entity);
 
         String updateQuery = String.format(UPDATE_BY_ID_TEMPLATE, tableName,
                 getUpdatePlaceholders(updateColumns), getColumnName(idField));
@@ -257,8 +247,7 @@ public class EntityPersister {
                 entityField.set(entity, columnValue);
                 fieldValues.add(columnValue);
             }
-            persistenceContext.snapshot(entity, fieldValues.toArray());
-            return persistenceContext.cache(entity);
+            return entity;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
                  SQLException e) {
             throw new BibernateException(e);
@@ -301,10 +290,5 @@ public class EntityPersister {
 
         throw new BibernateException(String.format("Cannot convert value of type %s to field type %s",
                 value.getClass().getSimpleName(), fieldType.getSimpleName()));
-    }
-
-    public void close() {
-        log.trace("Clearing cache...");
-        persistenceContext.clear();
     }
 }
