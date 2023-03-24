@@ -302,6 +302,11 @@ public class EntityPersister {
                     return ((Time) value).toLocalTime();
                 }
             }
+            case "Double" -> {
+                if (value instanceof Float) {
+                    return ((Float) value).doubleValue();
+                }
+            }
         }
 
         throw new BibernateException(String.format("Cannot convert value of type %s to field type %s",
