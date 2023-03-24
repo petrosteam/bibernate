@@ -178,7 +178,7 @@ public class EntityPersister {
     private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
-        List<Object> values = getEntityFields(entity);
+        List<Object> values = getInsertableValues(entity);
         String insertPlaceHolders = getInsertPlaceholders(columns);
         String insertQuery = String.format(INSERT_INTO_TABLE_VALUES_TEMPLATE, tableName,
                 String.join(", ", columns), insertPlaceHolders);
@@ -197,7 +197,7 @@ public class EntityPersister {
             throw new BibernateException("ID field is null");
         }
         List<String> updateColumns = getUpdatableColumns(entity);
-        List<Object> updateValues = getEntityFields(entity);
+        List<Object> updateValues = getUpdatableValues(entity);
 
         String updateQuery = String.format(UPDATE_BY_ID_TEMPLATE, tableName,
                 getUpdatePlaceholders(updateColumns), getColumnName(idField));

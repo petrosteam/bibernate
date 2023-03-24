@@ -78,6 +78,7 @@ class EntityUtilTest {
     @DisplayName("getIdField throws exception when @Id is absent")
     void getFieldValuesFromEntity() throws IllegalAccessException {
         Product product = new Product();
+        product.setId(1L);
         product.setProducer("Default Producer");
         product.setProductName("Default Product");
         product.setPrice(BigDecimal.TEN);
@@ -86,11 +87,8 @@ class EntityUtilTest {
         product.setCreatedAt(LocalDateTime.now());
         product.setSaleDate(LocalDate.now());
         product.setStockCount(1);
-
+        var fields = product.getClass().getDeclaredFields();
         var values = EntityUtil.getEntityFields(product).toArray();
-        var fields = Arrays.stream(product.getClass().getDeclaredFields())
-                .filter(field -> !field.isAnnotationPresent(Id.class))
-                .toArray(Field[]::new);
         for (var i = 0; i < fields.length; i++) {
             var field = fields[i];
             field.setAccessible(true);

@@ -101,23 +101,53 @@ public class EntityUtil {
     }
 
     /**
-     * Getting entity fields without id (field marked with @Id annotation)
+     * Retrieves the list of entity values for a given entity.
      *
      * @param entity Bibernate entity
-     * @return list of field values
+     * @return the list of entity values
      */
     public static List<Object> getEntityFields(Object entity) {
-        return getEntityFields(entity, true);
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .peek(field -> field.setAccessible(true))
+                .map(field -> {
+                    try {
+                        return field.get(entity);
+                    } catch (IllegalAccessException e) {
+                        throw new BibernateException(e);
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     /**
-     * Retrieves the list of entity values for a given entity.
+     * Retrieves the list of updatable values for a given entity.
+     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
      *
-     * @param entity   the entity for which to retrieve the insertable values
-     * @param ignoreId specifies should we ignore fields marked with @Id annotation or not
-     * @return the list of entity values
+     * @param entity the entity for which to retrieve the updatable values
+     * @return the list of updatable values
      */
-    public static List<Object> getEntityFields(Object entity, boolean ignoreId) {
+    public static <T> List<Object> getUpdatableValues(T entity) {
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .filter(field -> !isIdField(field))
+                .map(f -> {
+                    try {
+                        f.setAccessible(true);
+                        return f.get(entity);
+                    } catch (IllegalAccessException e) {
+                        throw new BibernateException(e);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves the list of insertable values for a given entity.
+     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     *
+     * @param entity the entity for which to retrieve the insertable values
+     * @return the list of insertable values
+     */
+    public static List<Object> getInsertableValues(Object entity)  {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
