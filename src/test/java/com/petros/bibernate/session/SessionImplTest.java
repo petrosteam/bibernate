@@ -1,6 +1,5 @@
 package com.petros.bibernate.session;
 
-import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
@@ -10,26 +9,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
-
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class SessionImplTest {
     private Session session;
+
     public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
-    public static final String DATABASE_USERNAME = "sa";
-    public static final String DATABASE_PASSWORD = "";
+
+    private static final String TEST_USERNAME = "test_user";
+    private static final String TEST_PASSWORD = "test_password";
 
     @BeforeEach
-    void setUp() {
-        // Create a database and run the Flyway migration
-        DataSource dataSource = new BibernateDataSource(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
+    public void setUpDatabase() {
+        DataSource dataSource = new BibernateDataSource(DATABASE_URL, TEST_USERNAME, TEST_PASSWORD);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
-                .locations("classpath:db/migration/product-test-data").load();
+                .locations("classpath:db/migration/product-test-data/other").load();
         flyway.clean();
         flyway.migrate();
-        // Initialize the EntityPersister with the H2 data source
         session = new SessionImpl(dataSource);
     }
 
@@ -47,8 +45,6 @@ class SessionImplTest {
         product.setPrice(BigDecimal.TEN);
         session.persist(product);
         var selectedProduct = session.find(Product.class, 4);
-        System.out.println(product.getId());
-        System.out.println(selectedProduct.getId());
         assertSame(product, selectedProduct);
     }
 
