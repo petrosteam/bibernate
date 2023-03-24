@@ -7,6 +7,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -28,14 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Testcontainers
 public class EntityPersisterTest {
     private static final String TEST_DATABASE_NAME = "test_db";
-    private static final String TEST_USERNAME = "test_user";
-    private static final String TEST_PASSWORD = "test_password";
+    private static final String TEST_USERNAME = "sa";
+    private static final String TEST_PASSWORD = "Test_Password2023#";
 
     private EntityPersister entityPersister;
     @Container
     private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
+    @Container
+    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
 
 
     private static MySQLContainer<?> createMySQLContainer() {
@@ -54,14 +57,35 @@ public class EntityPersisterTest {
                 .withExposedPorts(5432);
     }
 
+    private static MSSQLServerContainer<?> createMSSQLContainer() {
+        return new MSSQLServerContainer<>()
+                .withPassword(TEST_PASSWORD)
+                .withInitScript("init_mssql.sql")
+                .withEnv("ACCEPT_EULA", "Y");
+    }
+
     private void setUpDatabaseType(DatabaseType databaseType) {
         String jdbcUrl;
-        String subfolder = databaseType == DatabaseType.POSTGRES ? "/postgres" : "/other";
-        jdbcUrl = switch (databaseType) {
-            case MYSQL -> MYSQL_CONTAINER.getJdbcUrl();
-            case H2 -> "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
-            case POSTGRES -> POSTGRES_CONTAINER.getJdbcUrl();
-        };
+        String subfolder;
+        switch (databaseType) {
+            case MYSQL -> {
+                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/other";
+            }
+            case H2 -> {
+                jdbcUrl = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+                subfolder = "/other";
+            }
+            case POSTGRES -> {
+                jdbcUrl = POSTGRES_CONTAINER.getJdbcUrl();
+                subfolder = "/postgres";
+            }
+            case MSSQL -> {
+                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/mssql";
+            }
+            default -> throw new BibernateException("Unsupported database type");
+        }
         setUpDatabase(jdbcUrl, subfolder);
     }
 
@@ -314,6 +338,6 @@ public class EntityPersisterTest {
     }
 
     public enum DatabaseType {
-        H2, POSTGRES, MYSQL
+        H2, POSTGRES, MYSQL, MSSQL
     }
 }

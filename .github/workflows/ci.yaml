@@ -44,6 +44,18 @@ jobs:
         ports:
           - 5432:5432
 
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+          ACCEPT_EULA: Y
+          MSSQL_DBNAME: test_db
+          MSSQL_USER: test_user
+          MSSQL_PASSWORD: test_password
+        ports:
+          - 1433:1433
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 17
@@ -64,3 +76,8 @@ jobs:
           POSTGRES_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${{ secrets.TEST_DATABASE_NAME }}
           POSTGRES_USERNAME: ${{ secrets.TEST_USERNAME }}
           POSTGRES_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          MSSQL_HOST: 127.0.0.1
+          MSSQL_PORT: 1433
+          MSSQL_URL: jdbc:sqlserver://${MSSQL_HOST}:${MSSQL_PORT};databaseName=${{ secrets.TEST_DATABASE_NAME }}
+          MSSQL_USERNAME: ${{ secrets.TEST_USERNAME }}
+          MSSQL_PASSWORD: ${{ secrets.TEST_PASSWORD }}
