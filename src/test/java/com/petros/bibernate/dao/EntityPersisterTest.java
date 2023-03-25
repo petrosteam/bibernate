@@ -7,7 +7,13 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,37 +21,90 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+@Testcontainers
 public class EntityPersisterTest {
 
     private EntityPersister entityPersister;
+    @Container
+    private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
+    @Container
+    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
+    @Container
+    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
+
     private BibernateDataSource dataSource;
 
-    @BeforeEach
-    public void setUp() {
-        // Create a database and run the Flyway migration
-        dataSource = new BibernateDataSource("src/test/resources/application.properties");
+    private static MySQLContainer<?> createMySQLContainer() {
+        return new MySQLContainer<>("mysql:8.0")
+                .withDatabaseName(TEST_DATABASE_NAME)
+                .withUsername(TEST_USERNAME)
+                .withPassword(TEST_PASSWORD)
+                .withExposedPorts(3306);
+    }
+
+    private static PostgreSQLContainer<?> createPostgreSQLContainer() {
+        return new PostgreSQLContainer<>("postgres:13")
+                .withDatabaseName(TEST_DATABASE_NAME)
+                .withUsername(TEST_USERNAME)
+                .withPassword(TEST_PASSWORD)
+                .withExposedPorts(5432);
+    }
+
+    private static MSSQLServerContainer<?> createMSSQLContainer() {
+        return new MSSQLServerContainer<>()
+                .withPassword(TEST_PASSWORD)
+                .withInitScript("init_mssql.sql")
+                .withEnv("ACCEPT_EULA", "Y");
+    }
+
+    private void setUpDatabaseType(DatabaseType databaseType) {
+        String jdbcUrl;
+        String subfolder;
+        switch (databaseType) {
+            case MYSQL -> {
+                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/other";
+            }
+            case H2 -> {
+                jdbcUrl = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+                subfolder = "/other";
+            }
+            case POSTGRES -> {
+                jdbcUrl = POSTGRES_CONTAINER.getJdbcUrl();
+                subfolder = "/postgres";
+            }
+            case MSSQL -> {
+                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/mssql";
+            }
+            default -> throw new BibernateException("Unsupported database type");
+        }
+        setUpDatabase(jdbcUrl, subfolder);
+    }
+
+    private void setUpDatabase(String url, String subFolder) {
+        DataSource dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
-                .locations("classpath:db/migration/product-test-data").load();
+                .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
-        // Initialize the EntityPersister with the H2 data source
         entityPersister = new EntityPersister(dataSource);
     }
 
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @AfterEach
     public void shoutDown() {
         dataSource.close();
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the findById method with a known entity ID")
-    public void testFindById() {
+    public void testFindById(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
         Product product = entityPersister.findById(Product.class, 1L);
 
         assertNotNull(product);
@@ -62,9 +121,11 @@ public class EntityPersisterTest {
         assertEquals(LocalTime.of(9, 0, 0), product.getSaleTime());
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the findOne method with a known entity field and value")
-    public void testFindOne() throws NoSuchFieldException {
+    public void testFindOne(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
         Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 2);
 
         assertNotNull(product);
@@ -74,32 +135,43 @@ public class EntityPersisterTest {
         assertEquals(BigDecimal.valueOf(21500, 2), product.getPrice());
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the findOne method with non-existed entity")
-    public void testFindOneNotFound() throws NoSuchFieldException {
+    public void testFindOneNotFound(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
         Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 8);
 
         assertNull(product);
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the findOne method with a field that return several products")
-    public void testFindOneReturnSeveral() {
+    public void testFindOneReturnSeveral(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         assertThrows(BibernateException.class, () -> entityPersister.findOne(Product.class,
                 Product.class.getDeclaredField("producer"), "Sony"));
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the findAll method with a known entity field and value")
-    public void testFindAll() throws NoSuchFieldException {
+    public void testFindAll(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
         List<Product> products = entityPersister
                 .findAll(Product.class, Product.class.getDeclaredField("producer"), "Sony");
         assertEquals(2, products.size());
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the insert method with a new entity")
-    public void testInsertNewEntity() {
+    public void testInsertNewEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = new Product();
         product.setProductName("Nintendo Switch");
         product.setProducer("Nintendo");
@@ -132,20 +204,26 @@ public class EntityPersisterTest {
         assertEquals(product.getCreatedAt(), foundProduct.getCreatedAt());
         assertEquals(product.getIsAvailable(), foundProduct.getIsAvailable());
         assertEquals(product.getStockCount(), foundProduct.getStockCount());
-        assertEquals(product.getWeight(), foundProduct.getWeight());
+        assertEquals(product.getWeight(), foundProduct.getWeight(), 0.0001);
         assertEquals(product.getDescription(), foundProduct.getDescription());
         assertEquals(product.getSaleDate(), foundProduct.getSaleDate());
         assertEquals(product.getSaleTime(), foundProduct.getSaleTime());
     }
 
-    @Test
-    public void testInsertNullEntity() {
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    public void testInsertNullEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         assertThrows(NullPointerException.class, () -> entityPersister.insert(null));
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the update method")
-    public void testUpdate() {
+    public void testUpdate(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
 
         Product product = new Product();
         product.setProductName("Nintendo Switch");
@@ -168,9 +246,12 @@ public class EntityPersisterTest {
         assertEquals(product.getPrice(), updatedProduct.getPrice());
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the update method with a non-existing entity")
-    public void testUpdateNonExistingEntity() {
+    public void testUpdateNonExistingEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = new Product();
         product.setId(4L);
         product.setProductName("Nintendo Switch");
@@ -181,15 +262,21 @@ public class EntityPersisterTest {
                 " database");
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the update method with null entity")
-    public void testUpdateWithNullEntity() {
+    public void testUpdateWithNullEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         assertThrows(NullPointerException.class, () -> entityPersister.update(null));
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the update method with entity with null @Id field")
-    public void testUpdateEntityWithNullId() {
+    public void testUpdateEntityWithNullId(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = new Product();
         product.setProductName("Nintendo Switch");
         product.setProducer("Nintendo");
@@ -198,9 +285,12 @@ public class EntityPersisterTest {
         assertThrows(BibernateException.class, () -> entityPersister.update(product), "ID field is null");
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the delete method with an existing entity")
-    public void testDelete() {
+    public void testDelete(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = entityPersister.findById(Product.class, 1L);
 
         assertNotNull(product);
@@ -210,9 +300,12 @@ public class EntityPersisterTest {
         assertNull(deletedProduct);
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the delete method with a non-existing entity")
-    public void testDeleteNonExistingEntity() {
+    public void testDeleteNonExistingEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = new Product();
         product.setId(5L);
         product.setProductName("Non-existing Product");
@@ -223,20 +316,30 @@ public class EntityPersisterTest {
                 "the database");
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the delete method with null entity")
-    public void testDeleteWithNullEntity() {
+    public void testDeleteWithNullEntity(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         assertThrows(NullPointerException.class, () -> entityPersister.delete(null));
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test the delete method with entity with null @Id field")
-    public void testDeleteEntityWithNullId() {
+    public void testDeleteEntityWithNullId(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
         Product product = new Product();
         product.setProductName("Nintendo Switch");
         product.setProducer("Nintendo");
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
         assertThrows(BibernateException.class, () -> entityPersister.delete(product), "ID field is null");
+    }
+
+    public enum DatabaseType {
+        H2, POSTGRES, MYSQL, MSSQL
     }
 }

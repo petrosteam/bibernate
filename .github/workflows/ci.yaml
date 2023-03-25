@@ -18,10 +18,44 @@ jobs:
           distribution: 'temurin'
       - name: Build with Maven
         run: mvn clean package -DskipTests
+
   # Run test
   testing:
     needs: build
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+          ACCEPT_EULA: Y
+          MSSQL_DBNAME: test_db
+          MSSQL_USER: test_user
+          MSSQL_PASSWORD: test_password
+        ports:
+          - 1433:1433
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 17
@@ -30,4 +64,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: Testing
-        run:  mvn verify
+        run: mvn verify
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${{ secrets.TEST_DATABASE_NAME }}?serverTimezone=UTC&useSSL=false
+          MYSQL_USERNAME: ${{ secrets.TEST_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: 5432
+          POSTGRES_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${{ secrets.TEST_DATABASE_NAME }}
+          POSTGRES_USERNAME: ${{ secrets.TEST_USERNAME }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          MSSQL_HOST: 127.0.0.1
+          MSSQL_PORT: 1433
+          MSSQL_URL: jdbc:sqlserver://${MSSQL_HOST}:${MSSQL_PORT};databaseName=${{ secrets.TEST_DATABASE_NAME }}
+          MSSQL_USERNAME: ${{ secrets.TEST_USERNAME }}
+          MSSQL_PASSWORD: ${{ secrets.TEST_PASSWORD }}

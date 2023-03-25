@@ -1,6 +1,8 @@
 package com.petros.bibernate.util;
 
+import com.petros.bibernate.annotation.Id;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Product;
 import com.petros.bibernate.util.model.BrokenPerson;
 import com.petros.bibernate.util.model.Person;
 import com.petros.bibernate.util.model.User;
@@ -8,6 +10,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -65,5 +72,29 @@ class EntityUtilTest {
     void getIdFieldIdAnnotationAbsent() {
         BibernateException ex = assertThrows(BibernateException.class, () -> EntityUtil.getIdField(BrokenPerson.class));
         assertEquals("Entity BrokenPerson must contain exactly one field annotated with @Id", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("getIdField throws exception when @Id is absent")
+    void getFieldValuesFromEntity() throws IllegalAccessException {
+        Product product = new Product();
+        product.setId(1L);
+        product.setProducer("Default Producer");
+        product.setProductName("Default Product");
+        product.setPrice(BigDecimal.TEN);
+        product.setDescription("Default Description");
+        product.setIsAvailable(true);
+        product.setCreatedAt(LocalDateTime.now());
+        product.setSaleDate(LocalDate.now());
+        product.setStockCount(1);
+        var fields = product.getClass().getDeclaredFields();
+        var values = EntityUtil.getEntityFields(product).toArray();
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            field.setAccessible(true);
+            var fieldValue = field.get(product);
+            var value = values[i];
+            assertEquals(value, fieldValue);
+        }
     }
 }
