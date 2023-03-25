@@ -4,7 +4,9 @@ import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.testcontainers.containers.MSSQLServerContainer;
@@ -13,7 +15,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("ci-server")
 @Testcontainers
 public class EntityPersisterTest {
     private static final String TEST_DATABASE_NAME = "test_db";
@@ -29,13 +31,14 @@ public class EntityPersisterTest {
     private static final String TEST_PASSWORD = "Test_Password2023#";
 
     private EntityPersister entityPersister;
+    private BibernateDataSource dataSource;
+
     @Container
     private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
     @Container
     private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
-
 
     private static MySQLContainer<?> createMySQLContainer() {
         return new MySQLContainer<>("mysql:8.0")
@@ -86,12 +89,17 @@ public class EntityPersisterTest {
     }
 
     private void setUpDatabase(String url, String subFolder) {
-        DataSource dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
+        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
         entityPersister = new EntityPersister(dataSource);
+    }
+
+    @AfterEach
+    public void shoutDown() {
+        dataSource.close();
     }
 
     @ParameterizedTest
