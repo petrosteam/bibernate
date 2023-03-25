@@ -5,8 +5,8 @@ import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.testcontainers.containers.MSSQLServerContainer;
@@ -23,18 +23,22 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("ci-server")
 @Testcontainers
 public class EntityPersisterTest {
+    private static final String TEST_DATABASE_NAME = "test_db";
+    private static final String TEST_USERNAME = "sa";
+    private static final String TEST_PASSWORD = "Test_Password2023#";
 
     private EntityPersister entityPersister;
+    private BibernateDataSource dataSource;
+
     @Container
     private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
     @Container
     private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
-
-    private BibernateDataSource dataSource;
 
     private static MySQLContainer<?> createMySQLContainer() {
         return new MySQLContainer<>("mysql:8.0")
@@ -85,7 +89,7 @@ public class EntityPersisterTest {
     }
 
     private void setUpDatabase(String url, String subFolder) {
-        DataSource dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
+        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
@@ -93,8 +97,6 @@ public class EntityPersisterTest {
         entityPersister = new EntityPersister(dataSource);
     }
 
-    @ParameterizedTest
-    @EnumSource(DatabaseType.class)
     @AfterEach
     public void shoutDown() {
         dataSource.close();

@@ -6,13 +6,13 @@ import javax.sql.PooledConnection;
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
 import java.util.concurrent.Executor;
 
 @RequiredArgsConstructor
 public class BibernateConnection implements Connection {
     private final Connection connection;
-    private final ConcurrentLinkedQueue<BibernateConnection> connectionPool;
+    private final Queue<BibernateConnection> connectionPool;
 
     /**
      * Creates a {@code Statement} object for sending
