@@ -18,8 +18,8 @@ class SessionImplTest {
 
     public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
 
-    private static final String TEST_USERNAME = "test_user";
-    private static final String TEST_PASSWORD = "test_password";
+    private static final String TEST_USERNAME = "sa";
+    private static final String TEST_PASSWORD = "Test_Password2023#";
 
     @BeforeEach
     public void setUpDatabase() {
