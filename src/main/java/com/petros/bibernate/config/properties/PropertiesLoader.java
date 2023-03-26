@@ -1,7 +1,15 @@
 package com.petros.bibernate.config.properties;
 
-public interface PropertiesLoader {
+import java.util.Properties;
 
-    java.util.Properties getProperties();
+/**
+ * Interface  PropertiesLoader load configuration params from file
+ * Default file place src/main/resources/application.properties
+ */
+public interface PropertiesLoader {
+    /**
+     * @return set properties from configuration file
+     */
+    Properties getProperties();
 
 }
