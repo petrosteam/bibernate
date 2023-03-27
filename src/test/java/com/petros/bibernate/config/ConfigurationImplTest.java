@@ -34,7 +34,7 @@ class ConfigurationImplTest {
 
     @Test
     void getPasswordThenSuccess() {
-        var expectedPassword = "";
+        var expectedPassword = "Test_Password2023#";
         var actualPassword = configuration.getPassword();
         assertEquals(expectedPassword, actualPassword);
     }

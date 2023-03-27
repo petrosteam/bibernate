@@ -15,12 +15,15 @@ package com.petros.bibernate.session;
  */
 public class Persistence {
 
-    private static SessionFactory sessionFactory;
+    public static SessionFactory createSessionFactory() {
+        return new SessionFactoryImpl();
+    }
 
-    public static synchronized SessionFactory createSessionFactory() {
-        if (sessionFactory == null) {
-            sessionFactory = new SessionFactoryImpl();
-        }
-        return sessionFactory;
+    public static SessionFactory createSessionFactory(String configPath) {
+        return new SessionFactoryImpl(configPath);
+    }
+
+    public static SessionFactory createSessionFactory(String url, String username, String password) {
+        return new SessionFactoryImpl(url, username, password);
     }
 }
