@@ -2,6 +2,7 @@ package com.petros.bibernate.util;
 
 import com.petros.bibernate.annotation.Column;
 import com.petros.bibernate.annotation.Id;
+import com.petros.bibernate.annotation.JoinColumn;
 import com.petros.bibernate.annotation.ManyToOne;
 import com.petros.bibernate.annotation.Table;
 import com.petros.bibernate.exception.BibernateException;

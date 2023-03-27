@@ -177,7 +177,6 @@ public class EntityPersister {
     }
 
     private <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
-        validateJoinColumnsOnInsertOperation(entity);
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
         List<Object> values = getInsertableValues(entity);
@@ -188,29 +187,6 @@ public class EntityPersister {
         PreparedStatement statement = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
         setPreparedStatementValues(values, statement);
         return statement;
-    }
-
-    private <T> void validateJoinColumnsOnInsertOperation(T entity) {
-        for (var field : entity.getClass().getDeclaredFields()) {
-            if (EntityUtil.isEntityField(field)) {
-                try {
-                    field.setAccessible(true);
-                    var object = field.get(entity);
-                    if (object == null){
-                        continue;
-                    }
-                    var idValue = EntityUtil.getIdValue(object);
-                    var idField = EntityUtil.getIdField(object.getClass());
-                    var objectExists = findOne(object.getClass(), idField, idValue);
-                    if (objectExists == null) {
-                        throw new BibernateException("Insert in table: \"" + EntityUtil.getTableName(entity.getClass()) + "\" breaks foreign key restrictions. " +
-                                "Details: Key (" + idField.getName() + ") = (" + idValue + ") doesn't exist in table: \"" + EntityUtil.getTableName(object.getClass()) + "\"");
-                    }
-                } catch (IllegalAccessException e) {
-                    throw new BibernateException(e);
-                }
-            }
-        }
     }
 
     private static <T> PreparedStatement prepareUpdateStatement(T entity, Connection connection) throws SQLException,

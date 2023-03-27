@@ -349,9 +349,11 @@ public class EntityPersisterTest {
     void testInsertWithManyToOneRelation(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
 
+        Long persistedPersonId = 1L;
+        String persistedPersonName = "Oleg";
         Person personInDatabase = new Person();
-        personInDatabase.setId(1L);
-        personInDatabase.setFirstName("NewFirstName");
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
 
         Note newNote = new Note();
         String noteBody = "New note Body!";
@@ -359,13 +361,18 @@ public class EntityPersisterTest {
         newNote.setPerson(personInDatabase);
 
         Note createdNote = entityPersister.insert(newNote);
-
         assertNotNull(createdNote);
         assertNotNull(createdNote.getPerson());
         assertNotNull(createdNote.getId());
-        assertEquals(noteBody, createdNote.getBody());
-        assertEquals(personInDatabase.getId(), createdNote.getPerson().getId());
-        assertEquals(personInDatabase.getFirstName(), createdNote.getPerson().getFirstName());
+
+        Note dbNote = entityPersister.findById(Note.class, createdNote.getId());
+        Person dbPerson = entityPersister.findById(Person.class, persistedPersonId);
+
+        assertEquals(dbNote.getBody(), createdNote.getBody());
+        assertEquals(dbPerson.getId(), createdNote.getPerson().getId());
+        assertEquals(dbPerson.getFirstName(), createdNote.getPerson().getFirstName());
+        assertEquals(dbNote.getPerson().getId(), dbPerson.getId());
+        assertEquals(dbNote.getPerson().getFirstName(), dbPerson.getFirstName());
     }
 
     @ParameterizedTest
