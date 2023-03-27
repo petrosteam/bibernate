@@ -20,21 +20,21 @@ class ConfigurationImplTest {
 
     @Test
     void getJDBCUrlThenSuccess() {
-        var expectedUsername = "jdbc:h2:mem:test";
+        var expectedUsername = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
         var actualUsername = configuration.getUrl();
         assertEquals(expectedUsername, actualUsername);
     }
 
     @Test
     void getUsernameThenSuccess() {
-        var expectedUsername = "username";
+        var expectedUsername = "sa";
         var actualUsername = configuration.getUsername();
         assertEquals(expectedUsername, actualUsername);
     }
 
     @Test
     void getPasswordThenSuccess() {
-        var expectedPassword = "password";
+        var expectedPassword = "";
         var actualPassword = configuration.getPassword();
         assertEquals(expectedPassword, actualPassword);
     }

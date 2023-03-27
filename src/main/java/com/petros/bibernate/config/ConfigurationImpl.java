@@ -7,8 +7,8 @@ public class ConfigurationImpl implements Configuration {
 
     private static java.util.Properties properties;
 
-    public ConfigurationImpl() {
-        this(new PropertiesFileLoader());
+    public ConfigurationImpl(String configPath) {
+        this(new PropertiesFileLoader(configPath));
     }
 
     public ConfigurationImpl(PropertiesLoader propertiesFileLoader) {
@@ -22,18 +22,18 @@ public class ConfigurationImpl implements Configuration {
 
     @Override
     public String getUsername() {
-        return properties.getProperty("username");
+        return properties.getProperty(JDBC_USERNAME);
     }
 
     @Override
     public String getPassword() {
-        return properties.getProperty("password");
+        return properties.getProperty(JDBC_PASSWORD);
     }
 
 
     @Override
     public String getUrl() {
-        return properties.getProperty("jdbc-url");
+        return properties.getProperty(JDBC_URL);
     }
 
 }

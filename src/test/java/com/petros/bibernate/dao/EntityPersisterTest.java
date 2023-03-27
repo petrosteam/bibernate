@@ -6,39 +6,41 @@ import com.petros.bibernate.session.model.Note;
 import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("ci-server")
 @Testcontainers
 public class EntityPersisterTest {
     private static final String TEST_DATABASE_NAME = "test_db";
-    private static final String TEST_USERNAME = "test_user";
-    private static final String TEST_PASSWORD = "test_password";
+    private static final String TEST_USERNAME = "sa";
+    private static final String TEST_PASSWORD = "Test_Password2023#";
 
     private EntityPersister entityPersister;
+    private BibernateDataSource dataSource;
+
     @Container
     private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
-
+    @Container
+    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
 
     private static MySQLContainer<?> createMySQLContainer() {
         return new MySQLContainer<>("mysql:8.0")
@@ -56,24 +58,50 @@ public class EntityPersisterTest {
                 .withExposedPorts(5432);
     }
 
+    private static MSSQLServerContainer<?> createMSSQLContainer() {
+        return new MSSQLServerContainer<>()
+                .withPassword(TEST_PASSWORD)
+                .withInitScript("init_mssql.sql")
+                .withEnv("ACCEPT_EULA", "Y");
+    }
+
     private void setUpDatabaseType(DatabaseType databaseType) {
         String jdbcUrl;
-        String subfolder = databaseType == DatabaseType.POSTGRES ? "/postgres" : "/other";
-        jdbcUrl = switch (databaseType) {
-            case MYSQL -> MYSQL_CONTAINER.getJdbcUrl();
-            case H2 -> "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
-            case POSTGRES -> POSTGRES_CONTAINER.getJdbcUrl();
-        };
+        String subfolder;
+        switch (databaseType) {
+            case MYSQL -> {
+                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/other";
+            }
+            case H2 -> {
+                jdbcUrl = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+                subfolder = "/other";
+            }
+            case POSTGRES -> {
+                jdbcUrl = POSTGRES_CONTAINER.getJdbcUrl();
+                subfolder = "/postgres";
+            }
+            case MSSQL -> {
+                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/mssql";
+            }
+            default -> throw new BibernateException("Unsupported database type");
+        }
         setUpDatabase(jdbcUrl, subfolder);
     }
 
     private void setUpDatabase(String url, String subFolder) {
-        DataSource dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
+        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
         entityPersister = new EntityPersister(dataSource);
+    }
+
+    @AfterEach
+    public void shoutDown() {
+        dataSource.close();
     }
 
     @ParameterizedTest
@@ -375,6 +403,6 @@ public class EntityPersisterTest {
     }
 
     public enum DatabaseType {
-        H2, POSTGRES, MYSQL
+        H2, POSTGRES, MYSQL, MSSQL
     }
 }

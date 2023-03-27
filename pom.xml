@@ -12,7 +12,17 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <excludeTests>none</excludeTests>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>local</id>
+            <properties>
+                <excludeTests>ci-server</excludeTests>
+            </properties>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
@@ -47,6 +57,12 @@
             <version>8.0.23</version>
             <scope>test</scope>
         </dependency>
+        <!-- Microsoft SQL Server JDBC driver -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>9.4.1.jre11</version>
+        </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
@@ -71,7 +87,12 @@
             <version>1.17.6</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <version>1.17.6</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -101,6 +122,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
+                <configuration>
+                    <excludedGroups>${excludeTests}</excludedGroups>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
