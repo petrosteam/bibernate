@@ -2,6 +2,8 @@ package com.petros.bibernate.util;
 
 import com.petros.bibernate.annotation.Column;
 import com.petros.bibernate.annotation.Id;
+import com.petros.bibernate.annotation.JoinColumn;
+import com.petros.bibernate.annotation.ManyToOne;
 import com.petros.bibernate.annotation.Table;
 import com.petros.bibernate.exception.BibernateException;
 
@@ -37,9 +39,27 @@ public class EntityUtil {
      * @return the column name
      */
     public static String getColumnName(Field field) {
-        return ofNullable(field.getAnnotation(Column.class))
-                .map(Column::value)
-                .orElse(field.getName());
+        if (EntityUtil.isEntityField(field)) {
+            return ofNullable(field.getAnnotation(JoinColumn.class))
+                    .map(JoinColumn::value)
+                    .orElse(getDefaultIdColumnName(field.getName()));
+        } else {
+            return ofNullable(field.getAnnotation(Column.class))
+                    .map(Column::value)
+                    .orElse(field.getName());
+        }
+    }
+
+    /**
+     * Retrieves the JoinColumn name from a given class field.
+     *
+     * @param field field that is mapped as a foreign key
+     * @return the value of annotation @JoinColumn
+     */
+    public static String getJoinColumnName(Field field) {
+        return ofNullable(field.getAnnotation(JoinColumn.class))
+                .map(JoinColumn::value)
+                .orElse(getDefaultIdColumnName(field.getName()));
     }
 
     /**
@@ -147,13 +167,18 @@ public class EntityUtil {
      * @param entity the entity for which to retrieve the insertable values
      * @return the list of insertable values
      */
-    public static List<Object> getInsertableValues(Object entity)  {
+    public static List<Object> getInsertableValues(Object entity) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
                     try {
-                        return field.get(entity);
+                        if (EntityUtil.isEntityField(field)) {
+                            var nestedEntity = field.get(entity);
+                            return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
+                        } else {
+                            return field.get(entity);
+                        }
                     } catch (IllegalAccessException e) {
                         throw new BibernateException(e);
                     }
@@ -173,5 +198,30 @@ public class EntityUtil {
                 .filter(field -> !isIdField(field))
                 .map(EntityUtil::getColumnName)
                 .collect(Collectors.toList());
+    }
+    /**
+     * Checks if value is annotated with one of annotations
+     * that means complicated entity relations
+     *
+     * @param field the field to check
+     * @return true if field has simple value and not related to another entity
+     */
+    public static boolean isRegularField(Field field) {
+        return !isEntityField(field);
+    }
+
+    /**
+     * Checks if value is annotated with {@link ManyToOne} annotation
+     * that means complicated entity relations
+     *
+     * @param field the field to check
+     * @return true if entity has ManyToOne relation
+     */
+    public static boolean isEntityField(Field field) {
+        return field.isAnnotationPresent(ManyToOne.class);
+    }
+
+    private static String getDefaultIdColumnName(String fieldName) {
+        return fieldName + "_id";
     }
 }
