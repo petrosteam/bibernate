@@ -4,6 +4,7 @@ import com.petros.bibernate.annotation.Id;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import com.petros.bibernate.util.model.BrokenPerson;
+import com.petros.bibernate.util.model.UtilNote;
 import com.petros.bibernate.util.model.Person;
 import com.petros.bibernate.util.model.User;
 import org.junit.jupiter.api.DisplayName;
@@ -96,5 +97,13 @@ class EntityUtilTest {
             var value = values[i];
             assertEquals(value, fieldValue);
         }
+    }
+    @Test
+    @DisplayName("getJoinColumnName returns annotation value when @JoinColumn is present")
+    void getJoinColumnAnnotationPresent() throws NoSuchFieldException {
+        Field personField = UtilNote.class.getDeclaredField("person");
+        String joinColumnName = EntityUtil.getJoinColumnName(personField);
+        assertNotNull(joinColumnName);
+        assertEquals("person_id", joinColumnName);
     }
 }

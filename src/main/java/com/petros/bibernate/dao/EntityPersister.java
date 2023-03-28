@@ -1,6 +1,7 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
@@ -177,7 +178,7 @@ public class EntityPersister {
         }
     }
 
-    private static <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
+    private <T> PreparedStatement prepareInsertStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         List<String> columns = getInsertableColumns(entity.getClass());
         List<Object> values = getInsertableValues(entity);
@@ -243,9 +244,22 @@ public class EntityPersister {
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
                 entityField.setAccessible(TRUE);
-                String columnName = getColumnName(entityField);
-                var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
+
+                if (isRegularField(entityField)) {
+                    String columnName = getColumnName(entityField);
+                    var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
                 entityField.set(entity, columnValue);
+                } else if (isEntityField(entityField)) {
+                    var relatedEntityClass = entityField.getType();
+
+                    var relatedEntityId = getJoinColumnName(entityField);
+                    var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
+
+                    var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue);
+
+                    //TODO: place for lazy load future implementation
+                    entityField.set(entity, relatedEntity);
+                }
             }
             return entity;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |

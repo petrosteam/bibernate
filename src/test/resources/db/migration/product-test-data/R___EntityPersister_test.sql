@@ -12,7 +12,6 @@ CREATE TABLE products (
                           sale_time time,
                           PRIMARY KEY (id)
 );
-
 CREATE TABLE persons
 (
     id         bigint auto_increment,

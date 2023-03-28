@@ -2,6 +2,8 @@ package com.petros.bibernate.dao;
 
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Note;
+import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
@@ -340,6 +342,72 @@ public class EntityPersisterTest {
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
         assertThrows(BibernateException.class, () -> entityPersister.delete(product), "ID field is null");
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test insert with @ManyToOne relation")
+    void testInsertWithManyToOneRelation(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
+        Long persistedPersonId = 1L;
+        String persistedPersonName = "Oleg";
+        Person personInDatabase = new Person();
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
+
+        Note newNote = new Note();
+        String noteBody = "New note Body!";
+        newNote.setBody(noteBody);
+        newNote.setPerson(personInDatabase);
+
+        Note createdNote = entityPersister.insert(newNote);
+        assertNotNull(createdNote);
+        assertNotNull(createdNote.getPerson());
+        assertNotNull(createdNote.getId());
+
+        Note dbNote = entityPersister.findById(Note.class, createdNote.getId());
+        Person dbPerson = entityPersister.findById(Person.class, persistedPersonId);
+
+        assertEquals(dbNote.getBody(), createdNote.getBody());
+        assertEquals(dbPerson.getId(), createdNote.getPerson().getId());
+        assertEquals(dbPerson.getFirstName(), createdNote.getPerson().getFirstName());
+        assertEquals(dbNote.getPerson().getId(), dbPerson.getId());
+        assertEquals(dbNote.getPerson().getFirstName(), dbPerson.getFirstName());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test insert with @ManyToOne relation failed")
+    void testInsertWithManyToOneRelationForNotExistedPerson(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+
+        Person newPerson = new Person();
+        newPerson.setId(5L);
+        newPerson.setFirstName("PersonNotInTable");
+
+        Note newNote = new Note();
+        newNote.setBody("New note Body!");
+        newNote.setPerson(newPerson);
+
+        assertThrows(BibernateException.class, () -> entityPersister.insert(newNote));
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @ManyToOne relation")
+    void testFindOneWithManyToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1);
+
+        Person noteOwner = note.getPerson();
+        assertNotNull(note);
+        assertNotNull(noteOwner);
+        assertEquals(1L, note.getId());
+        assertEquals("Body of Note-1", note.getBody());
+        assertEquals(1L, noteOwner.getId());
+        assertEquals("Oleg", noteOwner.getFirstName());
     }
 
     public enum DatabaseType {
