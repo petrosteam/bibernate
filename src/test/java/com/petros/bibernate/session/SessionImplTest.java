@@ -1,5 +1,6 @@
 package com.petros.bibernate.session;
 
+import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
@@ -11,24 +12,29 @@ import org.junit.jupiter.api.Test;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_SIZE;
+import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SessionImplTest {
     private Session session;
 
-    public static final String DATABASE_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
-
-    private static final String TEST_USERNAME = "sa";
-    private static final String TEST_PASSWORD = "Test_Password2023#";
 
     @BeforeEach
     public void setUpDatabase() {
-        DataSource dataSource = new BibernateDataSource(DATABASE_URL, TEST_USERNAME, TEST_PASSWORD);
+        SessionFactoryImpl sessionFactory = new SessionFactoryImpl(TEST_PROPERTIES_PATH);
+        session = sessionFactory.openSession();
+        Configuration configuration = sessionFactory.getConfiguration();
+        DataSource dataSource = new BibernateDataSource(configuration.getUrl(), configuration.getUsername(),
+                configuration.getPassword(), DEFAULT_CONNECTION_POOL_SIZE);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data/other").load();
         flyway.clean();
         flyway.migrate();
-        session = new SessionImpl(dataSource);
     }
 
     @Test

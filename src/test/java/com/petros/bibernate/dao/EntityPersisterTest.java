@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_SIZE;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("ci-server")
@@ -91,12 +92,12 @@ public class EntityPersisterTest {
     }
 
     private void setUpDatabase(String url, String subFolder) {
-        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
+        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD, DEFAULT_CONNECTION_POOL_SIZE);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
-        entityPersister = new EntityPersister(dataSource);
+        entityPersister = new EntityPersister(dataSource, true);
     }
 
     @AfterEach

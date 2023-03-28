@@ -23,7 +23,7 @@ class PropertiesLoaderTypeTest {
     @CsvSource({
             "bibernate.jdbc.url, jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
             "bibernate.jdbc.username, sa",
-            "bibernate.jdbc.password, ''",
+            "bibernate.jdbc.password, 'Test_Password2023#'",
     })
     void getPropertyNameThenSuccess(String propertyName, String propertyValue) {
         var actualPropertyValue = readPropertiesFromPropFile.getProperties()

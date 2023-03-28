@@ -22,13 +22,15 @@ import static java.lang.Boolean.TRUE;
 @Slf4j
 public class EntityPersister {
     private final DataSource dataSource;
+    private final boolean showSql;
     private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "select * from %s where %s = ?;";
     private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "insert into %s(%s) values (%s);";
     private static final String UPDATE_BY_ID_TEMPLATE = "update %s set %s where %s = ?;";
     private static final String DELETE_BY_ID_TEMPLATE = "delete from %s where %s = ?;";
 
-    public EntityPersister(DataSource dataSource) {
+    public EntityPersister(DataSource dataSource, boolean showSql) {
         this.dataSource = dataSource;
+        this.showSql = showSql;
     }
 
     /**
