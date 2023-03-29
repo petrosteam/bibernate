@@ -21,6 +21,7 @@ public class SessionImpl implements Session {
     @Override
     public void flush() throws BibernateException {
         checkSession();
+        persistenceContext.getSnapshotDiff().forEach(entityPersister::update);
     }
 
     @Override
@@ -45,6 +46,8 @@ public class SessionImpl implements Session {
 
     @Override
     public void close() {
+        checkSession();
+        flush();
         persistenceContext.clear();
         isOpened = false;
     }

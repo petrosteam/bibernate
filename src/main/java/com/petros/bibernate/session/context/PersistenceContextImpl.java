@@ -37,7 +37,7 @@ public class PersistenceContextImpl implements PersistenceContext {
     @Override
     public <T> void snapshot(T entity) {
         var key = this.getKey(entity);
-        var values = EntityUtil.getEntityFields(entity).toArray();
+        var values = EntityUtil.getEntityFieldsForSnapshot(entity).toArray();
         snapshot.put(key, values);
     }
 

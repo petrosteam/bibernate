@@ -104,4 +104,16 @@ class SessionImplTest {
         session.close();
         assertThrows(BibernateException.class, () -> session.remove(product));
     }
+
+    @Test
+    @DisplayName("Testing flush() for updated entities")
+    void testFlushEntities() {
+
+        Product product = session.find(Product.class, 3L);
+        product.setStockCount(100);
+        session.flush();
+
+        var updatedProduct = session.find(Product.class, 3L);
+        assertEquals(updatedProduct.getStockCount(), 100);
+    }
 }

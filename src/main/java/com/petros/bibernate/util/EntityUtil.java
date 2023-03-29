@@ -6,7 +6,6 @@ import com.petros.bibernate.exception.BibernateException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -119,20 +118,16 @@ public class EntityUtil {
 
     /**
      * Retrieves the list of entity values for a given entity.
+     * Fields marked with {@link OneToMany} annotation are ignored
      *
      * @param entity Bibernate entity
      * @return the list of entity values
      */
-    public static List<Object> getEntityFields(Object entity) {
+    public static List<Object> getEntityFieldsForSnapshot(Object entity) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .peek(field -> field.setAccessible(true))
-                .map(field -> {
-                    try {
-                        return field.get(entity);
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
-                    }
-                })
+                .filter(field -> !isEntityCollectionField(field))
+                .map(field -> getFieldValue(field, entity))
                 .collect(Collectors.toList());
     }
 
@@ -196,6 +191,7 @@ public class EntityUtil {
                 .map(EntityUtil::getColumnName)
                 .collect(Collectors.toList());
     }
+
     /**
      * Checks if value is annotated with one of annotations
      * that means complicated entity relations
@@ -221,7 +217,8 @@ public class EntityUtil {
 
     /**
      * Getting field value of entity
-     * @param field object field
+     *
+     * @param field  object field
      * @param entity Bibernate entity
      * @return field value
      */
@@ -252,6 +249,7 @@ public class EntityUtil {
     /**
      * Checking if entity field is marked with {@link OneToMany} annotation.
      * Only collections may be marked with {@link OneToMany} annotation
+     *
      * @param field entity field
      * @return true if field has OneToMany annotation unless false
      */
