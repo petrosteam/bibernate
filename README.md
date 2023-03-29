@@ -42,18 +42,24 @@ To use Bibernate in your Java application, follow these steps:
 
 2. Before using Bibernate, you need to create a *SessionFactory* instance. The *SessionFactory* is a thread-safe object that creates *Session* instances. To create a *SessionFactory*, you can use one of the following approaches:
    * Calling the *Persistence.createSessionFactory()* method without arguments to use the default configuration specified in the *src/main/resources/application.properties* file:
+   
    ```java
     SessionFactory sessionFactory = Persistence.createSessionFactory();
     ```
+   
     * Passing a custom configuration file path to the *Persistence.createSessionFactory(configPath)* method:
+   
     ```java
     SessionFactory sessionFactory = Persistence.createSessionFactory("/path/to/custom/config.properties");
     ```
+   
    * Providing the necessary parameters to build a *DataSource* object by calling the *Persistence.createSessionFactory(url, username, password)* method:
+   
     ```java
     SessionFactory sessionFactory = Persistence.createSessionFactory("jdbc:mysql://localhost:3306/mydatabase", "myuser", "mypassword");
     ```
-   For more details on configuration options, see the Configuration section in the Features chapter.
+   
+   For more details on configuration options, see the [Configuration](#configuration) section in the Features chapter.
 
 
 ## Using Bibernate
