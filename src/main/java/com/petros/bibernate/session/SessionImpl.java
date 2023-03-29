@@ -1,5 +1,6 @@
 package com.petros.bibernate.session;
 
+import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
@@ -13,8 +14,8 @@ public class SessionImpl implements Session {
 
     private final PersistenceContext persistenceContext;
 
-    public SessionImpl(DataSource dataSource) {
-        this.entityPersister = new EntityPersister(dataSource);
+    public SessionImpl(DataSource dataSource, Configuration configuration) {
+        this.entityPersister = new EntityPersister(dataSource, configuration.showSql());
         this.persistenceContext = new PersistenceContextImpl();
     }
 

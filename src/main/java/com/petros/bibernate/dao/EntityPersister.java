@@ -1,19 +1,36 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
-import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.sql.*;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.petros.bibernate.util.EntityUtil.*;
+import static com.petros.bibernate.util.EntityUtil.getColumnName;
+import static com.petros.bibernate.util.EntityUtil.getIdField;
+import static com.petros.bibernate.util.EntityUtil.getIdValue;
+import static com.petros.bibernate.util.EntityUtil.getInsertableColumns;
+import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
+import static com.petros.bibernate.util.EntityUtil.getJoinColumnName;
+import static com.petros.bibernate.util.EntityUtil.getTableName;
+import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
+import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
+import static com.petros.bibernate.util.EntityUtil.isEntityField;
+import static com.petros.bibernate.util.EntityUtil.isRegularField;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -22,13 +39,15 @@ import static java.lang.Boolean.TRUE;
 @Slf4j
 public class EntityPersister {
     private final DataSource dataSource;
-    private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "select * from %s where %s = ?;";
-    private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "insert into %s(%s) values (%s);";
-    private static final String UPDATE_BY_ID_TEMPLATE = "update %s set %s where %s = ?;";
-    private static final String DELETE_BY_ID_TEMPLATE = "delete from %s where %s = ?;";
+    private final boolean showSql;
+    private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "SELECT * FROM %s WHERE %s = ?;";
+    private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "INSERT INTO %s(%s) VALUES (%s);";
+    private static final String UPDATE_BY_ID_TEMPLATE = "UPDATE %s SET %s WHERE %s = ?;";
+    private static final String DELETE_BY_ID_TEMPLATE = "DELETE FROM %s WHERE %s = ?;";
 
-    public EntityPersister(DataSource dataSource) {
+    public EntityPersister(DataSource dataSource, boolean showSql) {
         this.dataSource = dataSource;
+        this.showSql = showSql;
     }
 
     /**
@@ -147,17 +166,18 @@ public class EntityPersister {
         }
     }
 
-    private static <T> PreparedStatement prepareFindStatement(Class<T> entityClass, Field field, Object fieldValue,
-                                                              Connection connection) throws SQLException {
+    private <T> PreparedStatement prepareFindStatement(Class<T> entityClass, Field field, Object fieldValue,
+                                                       Connection connection) throws SQLException {
         String tableName = getTableName(entityClass);
         String columnName = getColumnName(field);
         String query = String.format(FIND_ENTITY_BY_FIELD_NAME_TEMPLATE, tableName, columnName);
+        printSqlStatement(query);
         PreparedStatement statement = connection.prepareStatement(query);
         statement.setObject(1, fieldValue);
         return statement;
     }
 
-    private static <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException {
+    private <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException {
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
         Object idValue = getIdValue(entity);
@@ -165,6 +185,7 @@ public class EntityPersister {
             throw new BibernateException("ID field is null");
         }
         String deleteQuery = String.format(DELETE_BY_ID_TEMPLATE, tableName, getColumnName(idField));
+        printSqlStatement(deleteQuery);
         PreparedStatement statement = connection.prepareStatement(deleteQuery);
         statement.setObject(1, idValue);
         return statement;
@@ -183,13 +204,13 @@ public class EntityPersister {
         String insertPlaceHolders = getInsertPlaceholders(columns);
         String insertQuery = String.format(INSERT_INTO_TABLE_VALUES_TEMPLATE, tableName,
                 String.join(", ", columns), insertPlaceHolders);
-
+        printSqlStatement(insertQuery);
         PreparedStatement statement = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
         setPreparedStatementValues(values, statement);
         return statement;
     }
 
-    private static <T> PreparedStatement prepareUpdateStatement(T entity, Connection connection) throws SQLException,
+    private <T> PreparedStatement prepareUpdateStatement(T entity, Connection connection) throws SQLException,
             IllegalAccessException {
         String tableName = getTableName(entity.getClass());
         Field idField = getIdField(entity.getClass());
@@ -202,6 +223,7 @@ public class EntityPersister {
 
         String updateQuery = String.format(UPDATE_BY_ID_TEMPLATE, tableName,
                 getUpdatePlaceholders(updateColumns), getColumnName(idField));
+        printSqlStatement(updateQuery);
         PreparedStatement statement = connection.prepareStatement(updateQuery);
         setPreparedStatementValues(updateValues, statement);
         statement.setObject(updateValues.size() + 1, idValue);
@@ -307,5 +329,11 @@ public class EntityPersister {
 
         throw new BibernateException(String.format("Cannot convert value of type %s to field type %s",
                 value.getClass().getSimpleName(), fieldType.getSimpleName()));
+    }
+
+    private void printSqlStatement(String query) {
+        if (showSql) {
+            System.out.println("SQL statement: " + query);
+        }
     }
 }

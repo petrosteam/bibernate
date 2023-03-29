@@ -17,12 +17,15 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_SIZE;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("ci-server")
@@ -91,12 +94,12 @@ public class EntityPersisterTest {
     }
 
     private void setUpDatabase(String url, String subFolder) {
-        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD);
+        dataSource = new BibernateDataSource(url, TEST_USERNAME, TEST_PASSWORD, DEFAULT_CONNECTION_POOL_SIZE);
         Flyway flyway = Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
-        entityPersister = new EntityPersister(dataSource);
+        entityPersister = new EntityPersister(dataSource, false);
     }
 
     @AfterEach
@@ -407,6 +410,25 @@ public class EntityPersisterTest {
         assertEquals("Body of Note-1", note.getBody());
         assertEquals(1L, noteOwner.getId());
         assertEquals("Oleg", noteOwner.getFirstName());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test showSql enabled")
+    public void testShowSqlEnabled(DatabaseType databaseType) {
+        setUpDatabaseType(databaseType);
+        this.entityPersister = new EntityPersister(dataSource, true);
+
+        // Redirect System.out to a byte array
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+
+        entityPersister.findById(Product.class, 1L);
+
+        // Convert the byte array to a string and check if it contains the expected output
+        String output = outContent.toString();
+        assertTrue(output.contains("SQL statement: SELECT * FROM products WHERE id = ?;"));
+
     }
 
     public enum DatabaseType {
