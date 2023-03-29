@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 
+import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_SIZE;
+import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SessionImplTest {
@@ -29,11 +31,6 @@ class SessionImplTest {
                 .locations("classpath:db/migration/product-test-data/other").load();
         flyway.clean();
         flyway.migrate();
-    }
-
-    @Test
-    void flush() {
-        // TODO: Implement tests for flush
     }
 
     @Test
@@ -106,7 +103,7 @@ class SessionImplTest {
     }
 
     @Test
-    @DisplayName("Testing flush() for updated entities")
+    @DisplayName("Testing flush() for changed entities")
     void testFlushEntities() {
 
         Product product = session.find(Product.class, 3L);
