@@ -2,9 +2,7 @@ package com.petros.bibernate.session.context;
 
 import com.petros.bibernate.util.EntityUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class PersistenceContextImpl implements PersistenceContext {
     Map<EntityKey, Object> entityCache;
@@ -48,6 +46,27 @@ public class PersistenceContextImpl implements PersistenceContext {
         var key = this.getKey(entity);
         this.snapshot.remove(key);
         this.entityCache.remove(key);
+    }
+
+    @Override
+    public List<Object> getSnapshotDiff() {
+        var diff = new ArrayList<>();
+        for (var cachedEntry : entityCache.entrySet()) {
+            var entity = cachedEntry.getValue();
+            var key = cachedEntry.getKey();
+            var entitySnapshot = snapshot.get(key);
+            var entityColumns = EntityUtil.getEntityColumns(key.entityType());
+            for (int i = 0; i < entityColumns.length; i++) {
+                var field = entityColumns[i];
+                field.setAccessible(true);
+                var entityFieldValue = EntityUtil.getFieldValue(field, entity);
+                var snapshotFieldValue = entitySnapshot[i];
+                if (!snapshotFieldValue.equals(entityFieldValue)) {
+                    diff.add(entity);
+                }
+            }
+        }
+        return diff;
     }
 
     @Override

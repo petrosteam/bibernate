@@ -1,15 +1,12 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.Column;
-import com.petros.bibernate.annotation.Id;
-import com.petros.bibernate.annotation.JoinColumn;
-import com.petros.bibernate.annotation.ManyToOne;
-import com.petros.bibernate.annotation.Table;
+import com.petros.bibernate.annotation.*;
 import com.petros.bibernate.exception.BibernateException;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -211,6 +208,33 @@ public class EntityUtil {
     }
 
     /**
+     * Helper method that returns entity fields that not marked with @OneToMany annotation.
+     *
+     * @param entityType type of Bibernate entity
+     * @return array of fields that are suitable for dirty checking
+     */
+    public static Field[] getEntityColumns(Class<?> entityType) {
+        return Arrays.stream(entityType.getDeclaredFields())
+                .filter(field -> !isEntityCollectionField(field))
+                .toArray(Field[]::new);
+    }
+
+    /**
+     * Getting field value of entity
+     * @param field object field
+     * @param entity Bibernate entity
+     * @return field value
+     */
+    public static Object getFieldValue(Field field, Object entity) {
+        try {
+            return field.get(entity);
+        } catch (IllegalAccessException e) {
+            throw new BibernateException("Could not get field %s value for entity %s".formatted(field.getName(),
+                    getTableName(entity.getClass())));
+        }
+    }
+
+    /**
      * Checks if value is annotated with {@link ManyToOne} annotation
      * that means complicated entity relations
      *
@@ -223,5 +247,15 @@ public class EntityUtil {
 
     private static String getDefaultIdColumnName(String fieldName) {
         return fieldName + "_id";
+    }
+
+    /**
+     * Checking if entity field is marked with {@link OneToMany} annotation.
+     * Only collections may be marked with {@link OneToMany} annotation
+     * @param field entity field
+     * @return true if field has OneToMany annotation unless false
+     */
+    private static boolean isEntityCollectionField(Field field) {
+        return field.isAnnotationPresent(OneToMany.class);
     }
 }
