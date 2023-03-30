@@ -99,7 +99,7 @@ public class EntityPersisterTest {
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
-        entityPersister = new EntityPersister(dataSource, false);
+        entityPersister = new EntityPersister( false);
     }
 
     @AfterEach
@@ -112,7 +112,7 @@ public class EntityPersisterTest {
     @DisplayName("Test the findById method with a known entity ID")
     public void testFindById(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
-        Product product = entityPersister.findById(Product.class, 1L);
+        Product product = entityPersister.findById(Product.class, 1L, dataSource.getConnection());
 
         assertNotNull(product);
         assertEquals(1L, product.getId());
@@ -133,7 +133,7 @@ public class EntityPersisterTest {
     @DisplayName("Test the findOne method with a known entity field and value")
     public void testFindOne(DatabaseType databaseType) throws NoSuchFieldException {
         setUpDatabaseType(databaseType);
-        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 2);
+        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 2, dataSource.getConnection());
 
         assertNotNull(product);
         assertEquals(2L, product.getId());
@@ -147,7 +147,7 @@ public class EntityPersisterTest {
     @DisplayName("Test the findOne method with non-existed entity")
     public void testFindOneNotFound(DatabaseType databaseType) throws NoSuchFieldException {
         setUpDatabaseType(databaseType);
-        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 8);
+        Product product = entityPersister.findOne(Product.class, Product.class.getDeclaredField("id"), 8, dataSource.getConnection());
 
         assertNull(product);
     }
@@ -159,7 +159,7 @@ public class EntityPersisterTest {
         setUpDatabaseType(databaseType);
 
         assertThrows(BibernateException.class, () -> entityPersister.findOne(Product.class,
-                Product.class.getDeclaredField("producer"), "Sony"));
+                Product.class.getDeclaredField("producer"), "Sony", dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -169,7 +169,7 @@ public class EntityPersisterTest {
         setUpDatabaseType(databaseType);
 
         List<Product> products = entityPersister
-                .findAll(Product.class, Product.class.getDeclaredField("producer"), "Sony");
+                .findAll(Product.class, Product.class.getDeclaredField("producer"), "Sony", dataSource.getConnection());
         assertEquals(2, products.size());
     }
 
@@ -191,14 +191,14 @@ public class EntityPersisterTest {
         product.setSaleDate(LocalDate.of(2023, 1, 25));
         product.setSaleTime(LocalTime.of(9, 0, 0));
 
-        Product insertedProduct = entityPersister.insert(product);
+        Product insertedProduct = entityPersister.insert(product, dataSource.getConnection());
 
         assertNotNull(insertedProduct.getId());
         assertEquals(4L, insertedProduct.getId());
         assertEquals(product, insertedProduct);
 
         // Find the inserted product by ID
-        Product foundProduct = entityPersister.findById(Product.class, insertedProduct.getId());
+        Product foundProduct = entityPersister.findById(Product.class, insertedProduct.getId(), dataSource.getConnection());
 
         // Check if the retrieved product is not null
         assertNotNull(foundProduct);
@@ -222,7 +222,7 @@ public class EntityPersisterTest {
     public void testInsertNullEntity(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
 
-        assertThrows(NullPointerException.class, () -> entityPersister.insert(null));
+        assertThrows(NullPointerException.class, () -> entityPersister.insert(null, dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -237,15 +237,15 @@ public class EntityPersisterTest {
         product.setProducer("Nintendo");
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
-        entityPersister.insert(product);
+        entityPersister.insert(product, dataSource.getConnection());
 
         product.setProductName("Updated Product Name");
         product.setProducer("Updated Producer");
         product.setPrice(BigDecimal.valueOf(88800, 2));
 
-        entityPersister.update(product);
+        entityPersister.update(product, dataSource.getConnection());
 
-        Product updatedProduct = entityPersister.findById(Product.class, product.getId());
+        Product updatedProduct = entityPersister.findById(Product.class, product.getId(), dataSource.getConnection());
         assertNotNull(updatedProduct);
         assertEquals(product.getId(), updatedProduct.getId());
         assertEquals(product.getProductName(), updatedProduct.getProductName());
@@ -265,7 +265,7 @@ public class EntityPersisterTest {
         product.setProducer("Nintendo");
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
-        assertThrows(BibernateException.class, () -> entityPersister.update(product), "Failed to update entity in the" +
+        assertThrows(BibernateException.class, () -> entityPersister.update(product, dataSource.getConnection()), "Failed to update entity in the" +
                 " database");
     }
 
@@ -275,7 +275,7 @@ public class EntityPersisterTest {
     public void testUpdateWithNullEntity(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
 
-        assertThrows(NullPointerException.class, () -> entityPersister.update(null));
+        assertThrows(NullPointerException.class, () -> entityPersister.update(null, dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -289,7 +289,7 @@ public class EntityPersisterTest {
         product.setProducer("Nintendo");
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
-        assertThrows(BibernateException.class, () -> entityPersister.update(product), "ID field is null");
+        assertThrows(BibernateException.class, () -> entityPersister.update(product, dataSource.getConnection()), "ID field is null");
     }
 
     @ParameterizedTest
@@ -298,12 +298,12 @@ public class EntityPersisterTest {
     public void testDelete(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
 
-        Product product = entityPersister.findById(Product.class, 1L);
+        Product product = entityPersister.findById(Product.class, 1L, dataSource.getConnection());
 
         assertNotNull(product);
-        entityPersister.delete(product);
+        entityPersister.delete(product, dataSource.getConnection());
 
-        Product deletedProduct = entityPersister.findById(Product.class, 1L);
+        Product deletedProduct = entityPersister.findById(Product.class, 1L, dataSource.getConnection());
         assertNull(deletedProduct);
     }
 
@@ -319,7 +319,7 @@ public class EntityPersisterTest {
         product.setProducer("Non-existing Producer");
         product.setPrice(BigDecimal.valueOf(99900, 2));
 
-        assertThrows(BibernateException.class, () -> entityPersister.delete(product), "Failed to delete entity from " +
+        assertThrows(BibernateException.class, () -> entityPersister.delete(product, dataSource.getConnection()), "Failed to delete entity from " +
                 "the database");
     }
 
@@ -329,7 +329,7 @@ public class EntityPersisterTest {
     public void testDeleteWithNullEntity(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
 
-        assertThrows(NullPointerException.class, () -> entityPersister.delete(null));
+        assertThrows(NullPointerException.class, () -> entityPersister.delete(null, dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -343,7 +343,7 @@ public class EntityPersisterTest {
         product.setProducer("Nintendo");
         product.setPrice(BigDecimal.valueOf(29900, 2));
 
-        assertThrows(BibernateException.class, () -> entityPersister.delete(product), "ID field is null");
+        assertThrows(BibernateException.class, () -> entityPersister.delete(product, dataSource.getConnection()), "ID field is null");
     }
 
     @ParameterizedTest
@@ -363,13 +363,13 @@ public class EntityPersisterTest {
         newNote.setBody(noteBody);
         newNote.setPerson(personInDatabase);
 
-        Note createdNote = entityPersister.insert(newNote);
+        Note createdNote = entityPersister.insert(newNote, dataSource.getConnection());
         assertNotNull(createdNote);
         assertNotNull(createdNote.getPerson());
         assertNotNull(createdNote.getId());
 
-        Note dbNote = entityPersister.findById(Note.class, createdNote.getId());
-        Person dbPerson = entityPersister.findById(Person.class, persistedPersonId);
+        Note dbNote = entityPersister.findById(Note.class, createdNote.getId(), dataSource.getConnection());
+        Person dbPerson = entityPersister.findById(Person.class, persistedPersonId, dataSource.getConnection());
 
         assertEquals(dbNote.getBody(), createdNote.getBody());
         assertEquals(dbPerson.getId(), createdNote.getPerson().getId());
@@ -392,7 +392,7 @@ public class EntityPersisterTest {
         newNote.setBody("New note Body!");
         newNote.setPerson(newPerson);
 
-        assertThrows(BibernateException.class, () -> entityPersister.insert(newNote));
+        assertThrows(BibernateException.class, () -> entityPersister.insert(newNote, dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -401,7 +401,7 @@ public class EntityPersisterTest {
     void testFindOneWithManyToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
         setUpDatabaseType(databaseType);
 
-        Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1);
+        Note note = entityPersister.findOne(Note.class, Note.class.getDeclaredField("id"), 1, dataSource.getConnection());
 
         Person noteOwner = note.getPerson();
         assertNotNull(note);
@@ -417,13 +417,13 @@ public class EntityPersisterTest {
     @DisplayName("Test showSql enabled")
     public void testShowSqlEnabled(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
-        this.entityPersister = new EntityPersister(dataSource, true);
+        this.entityPersister = new EntityPersister(true);
 
         // Redirect System.out to a byte array
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
-        entityPersister.findById(Product.class, 1L);
+        entityPersister.findById(Product.class, 1L, dataSource.getConnection());
 
         // Convert the byte array to a string and check if it contains the expected output
         String output = outContent.toString();

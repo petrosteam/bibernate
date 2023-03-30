@@ -72,4 +72,8 @@ public interface Session {
      * @throws BibernateException Indicates problems cleaning up.
      */
     void close();
+
+    void clear();
+
+    Transaction openTransaction();
 }

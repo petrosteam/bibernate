@@ -49,7 +49,9 @@ class SessionImplTest {
         product.setProductName("Default console");
         product.setProducer("Default Producer");
         product.setPrice(BigDecimal.TEN);
+        session.openTransaction().begin();
         session.persist(product);
+        session.openTransaction().commit();
         var selectedProduct = session.find(Product.class, 4);
         assertSame(product, selectedProduct);
     }
@@ -78,7 +80,9 @@ class SessionImplTest {
         Product product = session.find(Product.class, 3L);
 
         assertNotNull(product);
+        session.openTransaction().begin();
         session.remove(product);
+        session.openTransaction().commit();
 
         Product deletedProduct = session.find(Product.class, 3L);
         assertNull(deletedProduct);
@@ -108,6 +112,13 @@ class SessionImplTest {
     void testRemoveAfterSessionClose() {
         Product product = session.find(Product.class, 3L);
         session.close();
+        assertThrows(BibernateException.class, () -> session.remove(product));
+    }
+
+    @Test
+    @DisplayName("Transaction must be open before persist or delete")
+    void transactionMustBeOpenBeforeModification() {
+        Product product = session.find(Product.class, 3L);
         assertThrows(BibernateException.class, () -> session.remove(product));
     }
 }

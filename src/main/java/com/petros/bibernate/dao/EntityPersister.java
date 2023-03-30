@@ -3,7 +3,6 @@ package com.petros.bibernate.dao;
 import com.petros.bibernate.exception.BibernateException;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Clob;
@@ -38,15 +37,13 @@ import static java.lang.Boolean.TRUE;
  */
 @Slf4j
 public class EntityPersister {
-    private final DataSource dataSource;
     private final boolean showSql;
     private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "SELECT * FROM %s WHERE %s = ?;";
     private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "INSERT INTO %s(%s) VALUES (%s);";
     private static final String UPDATE_BY_ID_TEMPLATE = "UPDATE %s SET %s WHERE %s = ?;";
     private static final String DELETE_BY_ID_TEMPLATE = "DELETE FROM %s WHERE %s = ?;";
 
-    public EntityPersister(DataSource dataSource, boolean showSql) {
-        this.dataSource = dataSource;
+    public EntityPersister(boolean showSql) {
         this.showSql = showSql;
     }
 
@@ -58,9 +55,9 @@ public class EntityPersister {
      * @param <T>         the type of the entity
      * @return the entity with the specified identifier, or null if not found
      */
-    public <T> T findById(Class<T> entityClass, Object idValue) {
+    public <T> T findById(Class<T> entityClass, Object idValue, Connection connection) {
         Field idField = getIdField(entityClass);
-        return this.findOne(entityClass, idField, idValue);
+        return this.findOne(entityClass, idField, idValue, connection);
     }
 
     /**
@@ -72,8 +69,8 @@ public class EntityPersister {
      * @param <T>         the type of the entity
      * @return the entity with the specified field value, or null if not found
      */
-    public <T> T findOne(Class<T> entityClass, Field field, Object fieldValue) {
-        List<T> entities = findAll(entityClass, field, fieldValue);
+    public <T> T findOne(Class<T> entityClass, Field field, Object fieldValue, Connection connection) {
+        List<T> entities = findAll(entityClass, field, fieldValue, connection);
         if (entities.size() == 0) {
             return null;
         }
@@ -92,14 +89,13 @@ public class EntityPersister {
      * @param <T>         the type of the entity
      * @return a list of entities with the specified field value
      */
-    public <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue) {
+    public <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue, Connection connection) {
         List<T> result = new ArrayList<>();
 
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = prepareFindStatement(entityClass, field, fieldValue, connection)) {
+        try (PreparedStatement statement = prepareFindStatement(entityClass, field, fieldValue, connection)) {
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                result.add(mapResultSetToEntity(entityClass, resultSet));
+                result.add(mapResultSetToEntity(entityClass, resultSet, connection));
             }
         } catch (SQLException e) {
             throw new BibernateException(e);
@@ -114,10 +110,9 @@ public class EntityPersister {
      * @param <T>    the type of the entity
      * @return the inserted entity with the generated identifier
      **/
-    public <T> T insert(T entity) {
+    public <T> T insert(T entity, Connection connection) {
         Objects.requireNonNull(entity, "Entity should not be null");
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement insertStatement = prepareInsertStatement(entity, connection)) {
+        try (PreparedStatement insertStatement = prepareInsertStatement(entity, connection)) {
             int rowsAffected = insertStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
@@ -134,14 +129,12 @@ public class EntityPersister {
      * @param <T>    the type of the entity
      * @return the updated entity
      */
-    public <T> T update(T entity) {
+    public <T> T update(T entity, Connection connection) {
         Objects.requireNonNull(entity);
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement updateStatement = prepareUpdateStatement(entity, connection)) {
+        try (PreparedStatement updateStatement = prepareUpdateStatement(entity, connection)) {
             int rowsAffected = updateStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to update entity in the database");
             return entity;
-
         } catch (SQLException | IllegalAccessException e) {
             throw new BibernateException(e);
         }
@@ -154,10 +147,9 @@ public class EntityPersister {
      * @param <T>    the type of the entity
      * @return the deleted entity
      */
-    public <T> T delete(T entity) {
+    public <T> T delete(T entity, Connection connection) {
         Objects.requireNonNull(entity);
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement deleteStatement = prepareDeleteStatement(entity, connection)) {
+        try (PreparedStatement deleteStatement = prepareDeleteStatement(entity, connection)) {
             int rowsAffected = deleteStatement.executeUpdate();
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to delete entity from the database");
             return entity;
@@ -259,7 +251,7 @@ public class EntityPersister {
                 .collect(Collectors.joining(", "));
     }
 
-    private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet) {
+    private <T> T mapResultSetToEntity(Class<T> entityClass, ResultSet resultSet, Connection connection) {
         try {
             T entity = entityClass.getConstructor().newInstance();
             for (var entityField : entityClass.getDeclaredFields()) {
@@ -275,7 +267,7 @@ public class EntityPersister {
                     var relatedEntityId = getJoinColumnName(entityField);
                     var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
 
-                    var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue);
+                    var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue, connection);
 
                     //TODO: place for lazy load future implementation
                     entityField.set(entity, relatedEntity);
