@@ -191,6 +191,7 @@ class SessionImplTest {
 
         Product product = createProduct();
         product.setId(1L);
+        session.persist(product);
         assertThrows(BibernateException.class, () -> session.persist(product));
     }
 

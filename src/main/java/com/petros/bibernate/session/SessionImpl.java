@@ -84,6 +84,8 @@ public class SessionImpl implements Session {
         requireOpenSession();
         requireOpenTransaction();
         requireTransientState(entity);
+        // TODO: 02.04.2023 fetch an id from database before storing entity into queue
+        persistenceContext.cache(entity);
         actionQueue.add(InsertEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
@@ -142,14 +144,21 @@ public class SessionImpl implements Session {
         }
     }
 
+    // An entity is in transient state in two cases:
+    // 1) entity id is null
+    // 2) if entity id is not null, then persistence context should not contain an entity with such id
     private <T> void requireTransientState(T entity) {
         ofNullable(EntityUtil.getIdValue(entity))
                 .ifPresent(id -> {
-                    throw new BibernateException(format("Entity %s must be in transient state. An id value [%s] must not exist", entity.getClass(), id));
+                    persistenceContext.getCachedEntity(entity.getClass(), id)
+                            .ifPresent(e -> {
+                                throw new BibernateException(format("Entity %s must be in transient state. An id value [%s] must not exist", entity.getClass(), id));
+                            });
                 });
 
     }
 
+    // An entity is in persistent state only when the entity id is not null, and it is present in persistence context
     private <T> void requirePersistentState(T entity) {
         ofNullable(EntityUtil.getIdValue(entity))
                 .flatMap(id -> persistenceContext.getCachedEntity(entity.getClass(), id))
