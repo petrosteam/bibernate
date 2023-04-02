@@ -3,6 +3,8 @@ package com.petros.bibernate.session;
 import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Note;
+import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,5 +114,21 @@ class SessionImplTest {
 
         var updatedProduct = session.find(Product.class, 3L);
         assertEquals(updatedProduct.getStockCount(), 100);
+    }
+
+
+    @Test
+    @DisplayName("Related entities with @OneToMany annotation must not be stored and checked in persistence context")
+    void testFlushForRelatedEntities() {
+        var note = session.find(Note.class, 1);
+        var person = session.find(Person.class, 2);
+        note.setPerson(person);
+        session.flush();
+        session.close();
+
+        setUpDatabase();
+
+        var selectedNote = session.find(Note.class, 1);
+        assertNotEquals(note.getPerson(), selectedNote.getPerson());
     }
 }

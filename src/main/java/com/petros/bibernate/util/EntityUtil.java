@@ -2,6 +2,7 @@ package com.petros.bibernate.util;
 
 import com.petros.bibernate.annotation.*;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.context.PersistenceContext;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -126,7 +127,7 @@ public class EntityUtil {
     public static List<Object> getEntityFieldsForSnapshot(Object entity) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .peek(field -> field.setAccessible(true))
-                .filter(field -> !isEntityCollectionField(field))
+                .filter(field -> !isEntityRelationField(field))
                 .map(field -> getFieldValue(field, entity))
                 .collect(Collectors.toList());
     }
@@ -142,12 +143,8 @@ public class EntityUtil {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .map(f -> {
-                    try {
-                        f.setAccessible(true);
-                        return f.get(entity);
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
-                    }
+                    f.setAccessible(true);
+                    return getFieldValue(f, entity);
                 })
                 .collect(Collectors.toList());
     }
@@ -164,15 +161,11 @@ public class EntityUtil {
                 .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
-                    try {
-                        if (EntityUtil.isEntityField(field)) {
-                            var nestedEntity = field.get(entity);
-                            return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
-                        } else {
-                            return field.get(entity);
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
+                    if (EntityUtil.isEntityField(field)) {
+                        var nestedEntity = getFieldValue(field, entity);
+                        return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
+                    } else {
+                        return getFieldValue(field, entity);
                     }
                 })
                 .collect(Collectors.toList());
@@ -211,7 +204,7 @@ public class EntityUtil {
      */
     public static Field[] getEntityColumns(Class<?> entityType) {
         return Arrays.stream(entityType.getDeclaredFields())
-                .filter(field -> !isEntityCollectionField(field))
+                .filter(field -> !isEntityRelationField(field))
                 .toArray(Field[]::new);
     }
 
@@ -247,13 +240,15 @@ public class EntityUtil {
     }
 
     /**
-     * Checking if entity field is marked with {@link OneToMany} annotation.
-     * Only collections may be marked with {@link OneToMany} annotation
+     * Checking if entity field is marked with {@link OneToMany} {@link OneToOne} or {@link ManyToOne} annotation.
+     * If field is marked with these annotations, it could not be added to snapshot context
      *
      * @param field entity field
-     * @return true if field has OneToMany annotation unless false
+     * @return true if field has one of annotations described above
+     * @see PersistenceContext#getSnapshotDiff()
      */
-    private static boolean isEntityCollectionField(Field field) {
-        return field.isAnnotationPresent(OneToMany.class);
+    private static boolean isEntityRelationField(Field field) {
+        return field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(ManyToOne.class)
+                || field.isAnnotationPresent(OneToOne.class);
     }
 }

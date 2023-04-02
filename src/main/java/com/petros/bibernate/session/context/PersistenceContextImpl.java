@@ -52,17 +52,13 @@ public class PersistenceContextImpl implements PersistenceContext {
     public List<Object> getSnapshotDiff() {
         var diff = new ArrayList<>();
         for (var cachedEntry : entityCache.entrySet()) {
-            var entity = cachedEntry.getValue();
-            var key = cachedEntry.getKey();
-            var entitySnapshot = snapshot.get(key);
-            var entityColumns = EntityUtil.getEntityColumns(key.entityType());
-            for (int i = 0; i < entityColumns.length; i++) {
-                var field = entityColumns[i];
-                field.setAccessible(true);
-                var entityFieldValue = EntityUtil.getFieldValue(field, entity);
-                var snapshotFieldValue = entitySnapshot[i];
-                if (!snapshotFieldValue.equals(entityFieldValue)) {
-                    diff.add(entity);
+            var cachedEntity = entityCache.get(cachedEntry.getKey());
+            var cachedFieldValues = snapshot.get(cachedEntry.getKey());
+            var currentFieldValues = EntityUtil.getEntityFieldsForSnapshot(cachedEntity).toArray();
+            for (var i = 0; i < currentFieldValues.length; i++) {
+                if (!currentFieldValues[i].equals(cachedFieldValues[i])) {
+                    diff.add(cachedEntity);
+                    break;
                 }
             }
         }
