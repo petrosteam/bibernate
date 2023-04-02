@@ -30,6 +30,7 @@ import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
 import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
 import static com.petros.bibernate.util.EntityUtil.isEntityField;
 import static com.petros.bibernate.util.EntityUtil.isRegularField;
+import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 
 /**
@@ -39,12 +40,17 @@ import static java.lang.Boolean.TRUE;
 public class EntityPersister {
     private final boolean showSql;
     private static final String FIND_ENTITY_BY_FIELD_NAME_TEMPLATE = "SELECT * FROM %s WHERE %s = ?;";
+    private static final String FIND_ALL_ENTITIES_FROM_TABLE_TEMPLATE = "SELECT * FROM %s;";
     private static final String INSERT_INTO_TABLE_VALUES_TEMPLATE = "INSERT INTO %s(%s) VALUES (%s);";
     private static final String UPDATE_BY_ID_TEMPLATE = "UPDATE %s SET %s WHERE %s = ?;";
     private static final String DELETE_BY_ID_TEMPLATE = "DELETE FROM %s WHERE %s = ?;";
 
     public EntityPersister(boolean showSql) {
         this.showSql = showSql;
+    }
+
+    public EntityPersister() {
+        this(FALSE);
     }
 
     /**
@@ -93,6 +99,27 @@ public class EntityPersister {
         List<T> result = new ArrayList<>();
 
         try (PreparedStatement statement = prepareFindStatement(entityClass, field, fieldValue, connection)) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                result.add(mapResultSetToEntity(entityClass, resultSet, connection));
+            }
+        } catch (SQLException e) {
+            throw new BibernateException(e);
+        }
+        return result;
+    }
+
+    /**
+     * Retrieves all entities of specified entityClass.
+     *
+     * @param entityClass the class of the entity to retrieve
+     * @param <T>         the type of the entity
+     * @return a list of entities
+     */
+    public <T> List<T> findAll(Class<T> entityClass, Connection connection) {
+        List<T> result = new ArrayList<>();
+
+        try (PreparedStatement statement = prepareFindAllStatement(entityClass, connection)) {
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 result.add(mapResultSetToEntity(entityClass, resultSet, connection));
@@ -167,6 +194,13 @@ public class EntityPersister {
         PreparedStatement statement = connection.prepareStatement(query);
         statement.setObject(1, fieldValue);
         return statement;
+    }
+
+    private <T> PreparedStatement prepareFindAllStatement(Class<T> entityClass, Connection connection) throws SQLException {
+        String tableName = getTableName(entityClass);
+        String query = String.format(FIND_ALL_ENTITIES_FROM_TABLE_TEMPLATE, tableName);
+        printSqlStatement(query);
+        return connection.prepareStatement(query);
     }
 
     private <T> PreparedStatement prepareDeleteStatement(T entity, Connection connection) throws SQLException {

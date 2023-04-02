@@ -14,9 +14,7 @@ public class UpdateEntityAction implements EntityAction {
 
     @Override
     public void execute(Connection connection, PersistenceContext persistenceContext) {
-        Object entity = persister.update(this.entity, connection);
-        persistenceContext.remove(entity);
-        persistenceContext.cache(entity);
+        persister.update(this.entity, connection);
     }
 
     @Override

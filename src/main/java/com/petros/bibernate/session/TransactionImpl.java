@@ -17,8 +17,8 @@ public class TransactionImpl implements Transaction {
     @Override
     public void commit() {
         requireOpenTransaction();
-        open = false;
         session.flush();
+        open = false;
     }
 
     @Override

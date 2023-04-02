@@ -8,16 +8,20 @@ import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 import com.petros.bibernate.session.context.PersistenceContextImpl;
+import com.petros.bibernate.util.EntityUtil;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Comparator;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
+import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 
 public class SessionImpl implements Session {
     private boolean isOpened = true;
@@ -36,14 +40,33 @@ public class SessionImpl implements Session {
         this.transaction = new TransactionImpl(this);
     }
 
+    public SessionImpl(DataSource dataSource, EntityPersister entityPersister) {
+        this.entityPersister = entityPersister;
+        this.dataSource = dataSource;
+        this.persistenceContext = new PersistenceContextImpl();
+        this.actionQueue = new PriorityQueue<>(Comparator.comparing(EntityAction::priority));
+        this.transaction = new TransactionImpl(this);
+    }
+
     @Override
     public void flush() throws BibernateException {
         requireOpenSession();
         openConnection();
-        setAutoCommitIfTxOpen(FALSE);
-        actionQueue.forEach(action -> action.execute(connection, persistenceContext));
-        actionQueue.clear();
-        setAutoCommitIfTxOpen(TRUE);
+        try {
+            setAutoCommitIfTxOpen(FALSE);
+            actionQueue.forEach(action -> action.execute(connection, persistenceContext));
+            actionQueue.clear();
+            connection.commit();
+            setAutoCommitIfTxOpen(TRUE);
+        } catch (Exception ex) {
+            try {
+                connection.rollback();
+                throw new BibernateException("Exception occurred during committing data", ex);
+            } catch (SQLException e) {
+                throw new BibernateException("Exception occurred during connection.rollback()", e);
+            }
+        }
+
     }
 
     private void setAutoCommitIfTxOpen(boolean isAutoCommit) {
@@ -60,6 +83,7 @@ public class SessionImpl implements Session {
     public <T> void persist(T entity) {
         requireOpenSession();
         requireOpenTransaction();
+        requireTransientState(entity);
         actionQueue.add(InsertEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
@@ -75,9 +99,17 @@ public class SessionImpl implements Session {
     }
 
     @Override
+    public <T> List<T> findAll(Class<T> entityClass) {
+        requireOpenSession();
+        flush();
+        return entityPersister.findAll(entityClass, connection);
+    }
+
+    @Override
     public <T> void remove(T entity) {
         requireOpenSession();
         requireOpenTransaction();
+        requirePersistentState(entity);
         actionQueue.add(DeleteEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
@@ -89,10 +121,12 @@ public class SessionImpl implements Session {
         persistenceContext.clear();
         actionQueue.clear();
         isOpened = false;
+        closeConnection();
     }
 
     @Override
     public void clear() {
+        persistenceContext.clear();
         actionQueue.clear();
     }
 
@@ -108,6 +142,20 @@ public class SessionImpl implements Session {
         }
     }
 
+    private <T> void requireTransientState(T entity) {
+        ofNullable(EntityUtil.getIdValue(entity))
+                .ifPresent(id -> {
+                    throw new BibernateException(format("Entity %s must be in transient state. An id value [%s] must not exist", entity.getClass(), id));
+                });
+
+    }
+
+    private <T> void requirePersistentState(T entity) {
+        ofNullable(EntityUtil.getIdValue(entity))
+                .flatMap(id -> persistenceContext.getCachedEntity(entity.getClass(), id))
+                .orElseThrow(() -> new BibernateException(format("Entity %s must be in persistent state (entity must be associated with persistence context)", entity.getClass())));
+    }
+
     private void openConnection() {
         if (connection == null) {
             try {
@@ -118,8 +166,18 @@ public class SessionImpl implements Session {
         }
     }
 
+    private void closeConnection() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException ex) {
+                throw new BibernateException("Could not close database connection", ex);
+            }
+        }
+    }
+
     @Override
-    public Transaction openTransaction() {
+    public Transaction getTransaction() {
         return this.transaction;
     }
 }

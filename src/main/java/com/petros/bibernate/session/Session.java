@@ -2,6 +2,8 @@ package com.petros.bibernate.session;
 
 import com.petros.bibernate.exception.BibernateException;
 
+import java.util.List;
+
 /**
  * The main runtime interface between a Java application and Bibernate. This is the
  * central API class abstracting the notion of a persistence service.<br>
@@ -58,6 +60,16 @@ public interface Session {
     <T> T find(Class<T> entityClass, Object primaryKey);
 
     /**
+     * Find by entity class.
+     * Search for all entities of the specified class.
+     * It does not check persistence context but calls database directly.
+     *
+     * @param entityClass entity class
+     * @return the found entity instances or an empty list
+     */
+    <T> List<T> findAll(Class<T> entityClass);
+
+    /**
      * Remove the entity instance.
      *
      * @param entity entity instance
@@ -73,7 +85,17 @@ public interface Session {
      */
     void close();
 
+    /**
+     * Removes all entities from persistence context and action queue
+     *
+     */
     void clear();
 
-    Transaction openTransaction();
+    /**
+     * Creates a new transaction or returns an existing one
+     *
+     * @return transaction instance
+     */
+    Transaction getTransaction();
+
 }
