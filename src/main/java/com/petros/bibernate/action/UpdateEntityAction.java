@@ -14,7 +14,7 @@ public class UpdateEntityAction implements EntityAction {
 
     @Override
     public void execute(Connection connection, PersistenceContext persistenceContext) {
-        persister.update(this.entity, connection);
+        persistenceContext.getSnapshotDiff().forEach(entity -> persister.update(this.entity, connection));
     }
 
     @Override

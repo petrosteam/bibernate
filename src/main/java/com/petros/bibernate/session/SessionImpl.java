@@ -66,7 +66,6 @@ public class SessionImpl implements Session {
                 throw new BibernateException("Exception occurred during connection.rollback()", e);
             }
         }
-
     }
 
     private void setAutoCommitIfTxOpen(boolean isAutoCommit) {
@@ -77,8 +76,6 @@ public class SessionImpl implements Session {
                 throw new BibernateException("Could not set autoCommit=false", ex);
             }
         }
-        checkSession();
-        persistenceContext.getSnapshotDiff().forEach(entityPersister::update);
     }
 
     @Override
@@ -122,7 +119,7 @@ public class SessionImpl implements Session {
 
     @Override
     public void close() {
-        checkSession();
+        requireOpenSession();
         flush();
         persistenceContext.clear();
         actionQueue.clear();
