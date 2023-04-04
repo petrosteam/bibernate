@@ -5,11 +5,15 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table("persons")
-public class Person {
+@Table("person_info")
+public class PersonInfo {
     @Id
     private Long id;
 
-    @Column("first_name")
-    private String firstName;
+    @Column("info")
+    String info;
+
+    @OneToOne
+    @JoinColumn("id")
+    private Person person;
 }

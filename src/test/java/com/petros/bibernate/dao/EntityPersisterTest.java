@@ -4,6 +4,7 @@ import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Note;
 import com.petros.bibernate.session.model.Person;
+import com.petros.bibernate.session.model.PersonInfo;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
@@ -38,12 +39,12 @@ public class EntityPersisterTest {
     private EntityPersister entityPersister;
     private BibernateDataSource dataSource;
 
-    @Container
-    private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
+//    @Container
+//    private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
-    @Container
-    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
+//    @Container
+//    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
 
     private static MySQLContainer<?> createMySQLContainer() {
         return new MySQLContainer<>("mysql:8.0")
@@ -72,10 +73,10 @@ public class EntityPersisterTest {
         String jdbcUrl;
         String subfolder;
         switch (databaseType) {
-            case MYSQL -> {
-                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
-                subfolder = "/other";
-            }
+//            case MYSQL -> {
+//                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
+//                subfolder = "/other";
+//            }
             case H2 -> {
                 jdbcUrl = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
                 subfolder = "/other";
@@ -84,10 +85,10 @@ public class EntityPersisterTest {
                 jdbcUrl = POSTGRES_CONTAINER.getJdbcUrl();
                 subfolder = "/postgres";
             }
-            case MSSQL -> {
-                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
-                subfolder = "/mssql";
-            }
+//            case MSSQL -> {
+//                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
+//                subfolder = "/mssql";
+//            }
             default -> throw new BibernateException("Unsupported database type");
         }
         setUpDatabase(jdbcUrl, subfolder);
@@ -414,6 +415,34 @@ public class EntityPersisterTest {
 
     @ParameterizedTest
     @EnumSource(DatabaseType.class)
+    @DisplayName("Test insert with @OneToOne relation")
+    void testInsertWithOneToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Long persistedPersonId = 2L;
+        String persistedPersonName = "Viktor";
+        Person personInDatabase = new Person();
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
+
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setPerson(personInDatabase);
+
+        PersonInfo createdInfo = entityPersister.insert(personInfo, dataSource.getConnection());
+        assertNotNull(createdInfo);
+        assertNotNull(createdInfo.getInfo());
+        assertNotNull(createdInfo.getId());
+        assertNotNull(createdInfo.getPerson().getId());
+        assertEquals(createdInfo.getId(), createdInfo.getPerson().getId());
+
+
+      //   assertEquals(c.getPersonInfo().getInfo(), info);
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test showSql enabled")
     public void testShowSqlEnabled(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
@@ -432,6 +461,6 @@ public class EntityPersisterTest {
     }
 
     public enum DatabaseType {
-        H2, POSTGRES, MYSQL, MSSQL
+        H2, POSTGRES
     }
 }

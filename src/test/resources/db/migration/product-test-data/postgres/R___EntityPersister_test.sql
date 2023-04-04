@@ -30,6 +30,14 @@ CREATE TABLE notes
     FOREIGN KEY (person_id) REFERENCES persons (id)
 );
 
+CREATE TABLE person_info
+(
+    id         BIGSERIAL,
+    info varchar(255) NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (id) REFERENCES persons (id)
+);
+
 INSERT INTO products(name, producer, price, created_at, is_available, stock_count, weight, description, sale_date,
                      sale_time)
 VALUES ('Play Station', 'Sony', 249.00, '2023-01-01 12:00:00', true, 100, 3.0, 'Play Station console', '2023-01-10',

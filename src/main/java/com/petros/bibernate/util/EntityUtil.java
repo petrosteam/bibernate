@@ -232,7 +232,7 @@ public class EntityUtil {
      * @return true if entity has ManyToOne relation
      */
     public static boolean isEntityField(Field field) {
-        return field.isAnnotationPresent(ManyToOne.class);
+        return field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class);
     }
 
     private static String getDefaultIdColumnName(String fieldName) {
