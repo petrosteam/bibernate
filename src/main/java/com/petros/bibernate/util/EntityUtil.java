@@ -119,7 +119,7 @@ public class EntityUtil {
 
     /**
      * Retrieves the list of entity values for a given entity.
-     * Fields marked with {@link OneToMany} annotation are ignored
+     * Fields marked with {@link OneToMany}, {@link ManyToOne}, {@link OneToOne} annotations are ignored
      *
      * @param entity Bibernate entity
      * @return the list of entity values
