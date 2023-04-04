@@ -39,12 +39,12 @@ public class EntityPersisterTest {
     private EntityPersister entityPersister;
     private BibernateDataSource dataSource;
 
-//    @Container
-//    private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
+    @Container
+    private static final MySQLContainer<?> MYSQL_CONTAINER = createMySQLContainer();
     @Container
     private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = createPostgreSQLContainer();
-//    @Container
-//    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
+    @Container
+    private static final MSSQLServerContainer<?> MSSQL_CONTAINER = createMSSQLContainer();
 
     private static MySQLContainer<?> createMySQLContainer() {
         return new MySQLContainer<>("mysql:8.0")
@@ -73,10 +73,10 @@ public class EntityPersisterTest {
         String jdbcUrl;
         String subfolder;
         switch (databaseType) {
-//            case MYSQL -> {
-//                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
-//                subfolder = "/other";
-//            }
+            case MYSQL -> {
+                jdbcUrl = MYSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/other";
+            }
             case H2 -> {
                 jdbcUrl = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
                 subfolder = "/other";
@@ -85,10 +85,10 @@ public class EntityPersisterTest {
                 jdbcUrl = POSTGRES_CONTAINER.getJdbcUrl();
                 subfolder = "/postgres";
             }
-//            case MSSQL -> {
-//                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
-//                subfolder = "/mssql";
-//            }
+            case MSSQL -> {
+                jdbcUrl = MSSQL_CONTAINER.getJdbcUrl();
+                subfolder = "/mssql";
+            }
             default -> throw new BibernateException("Unsupported database type");
         }
         setUpDatabase(jdbcUrl, subfolder);
@@ -431,14 +431,56 @@ public class EntityPersisterTest {
         personInfo.setPerson(personInDatabase);
 
         PersonInfo createdInfo = entityPersister.insert(personInfo, dataSource.getConnection());
+
         assertNotNull(createdInfo);
-        assertNotNull(createdInfo.getInfo());
         assertNotNull(createdInfo.getId());
+        assertEquals(createdInfo.getInfo(), info);
         assertNotNull(createdInfo.getPerson().getId());
         assertEquals(createdInfo.getId(), createdInfo.getPerson().getId());
+    }
 
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @OneToOne relation")
+    void testFindWithOneToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+        Long persistedPersonId = 1L;
+        String persistedPersonName = "Viktor";
+        Person personInDatabase = new Person();
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setPerson(personInDatabase);
 
-      //   assertEquals(c.getPersonInfo().getInfo(), info);
+        entityPersister.insert(personInfo, dataSource.getConnection());
+
+        PersonInfo personInfoFromDB = entityPersister.findOne(PersonInfo.class, PersonInfo.class.getDeclaredField("id"),
+                1L,
+                dataSource.getConnection());
+        assertNotNull(personInfoFromDB);
+        assertEquals(personInfoFromDB.getPerson().getId(), persistedPersonId);
+        assertNotNull(personInfoFromDB.getInfo(), info);
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Testing insert method with @OneToOne relation with non-exist parent entity")
+    void testInsertWithOneToOneRelationWithNullRelatedEntity(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Person newPerson = new Person();
+        newPerson.setId(5L);
+        newPerson.setFirstName("PersonNotInTable");
+
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setId(5L);
+        personInfo.setPerson(newPerson);
+
+        assertThrows(BibernateException.class, () -> entityPersister.insert(personInfo, dataSource.getConnection()));
     }
 
     @ParameterizedTest
@@ -457,10 +499,9 @@ public class EntityPersisterTest {
         // Convert the byte array to a string and check if it contains the expected output
         String output = outContent.toString();
         assertTrue(output.contains("SQL statement: SELECT * FROM products WHERE id = ?;"));
-
     }
 
     public enum DatabaseType {
-        H2, POSTGRES
+        H2, POSTGRES, MSSQL, MYSQL
     }
 }

@@ -225,7 +225,7 @@ public class EntityUtil {
     }
 
     /**
-     * Checks if value is annotated with {@link ManyToOne} annotation
+     * Checks if value is annotated with {@link ManyToOne} and {@link OneToOne} annotation
      * that means complicated entity relations
      *
      * @param field the field to check
