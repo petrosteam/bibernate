@@ -75,7 +75,7 @@ public class PersistenceContextImpl implements PersistenceContext {
     private <T> EntityKey getKey(T entity) {
         var id = EntityUtil.getIdValue(entity);
         if (id == null) {
-            throw new BibernateException("Could not store entity with empty ID in the Persistence Context...");
+            throw new BibernateException("Could not store entity with empty ID in the Persistence Context");
         }
         return EntityKey.of(entity.getClass(), id);
     }

@@ -87,7 +87,6 @@ public class SessionImpl implements Session {
         requireOpenTransaction();
         requireTransientState(entity);
         // TODO: 02.04.2023 fetch an id from database before storing entity into queue
-        persistenceContext.cache(entity);
         actionQueue.add(InsertEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
