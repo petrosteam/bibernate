@@ -1,5 +1,6 @@
 package com.petros.bibernate.session.context;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,10 +40,18 @@ public interface PersistenceContext {
 
     /**
      * Removing entity from context
+     *
      * @param entity Bibernate entity
-     * @param <T> entity type
+     * @param <T>    entity type
      */
     <T> void remove(T entity);
+
+    /**
+     * Getting snapshot difference. If cached entity has been changed it's added to the result list.
+     *
+     * @return list of changed entities
+     */
+    List<Object> getSnapshotDiff();
 
     /**
      * Clearing entity cache and snapshots

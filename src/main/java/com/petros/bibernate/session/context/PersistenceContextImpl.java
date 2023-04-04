@@ -1,10 +1,9 @@
 package com.petros.bibernate.session.context;
 
+import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.util.EntityUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class PersistenceContextImpl implements PersistenceContext {
     Map<EntityKey, Object> entityCache;
@@ -39,7 +38,7 @@ public class PersistenceContextImpl implements PersistenceContext {
     @Override
     public <T> void snapshot(T entity) {
         var key = this.getKey(entity);
-        var values = EntityUtil.getEntityFields(entity).toArray();
+        var values = EntityUtil.getEntityFieldsForSnapshot(entity).toArray();
         snapshot.put(key, values);
     }
 
@@ -51,6 +50,23 @@ public class PersistenceContextImpl implements PersistenceContext {
     }
 
     @Override
+    public List<Object> getSnapshotDiff() {
+        var diff = new ArrayList<>();
+        for (var cachedEntry : entityCache.entrySet()) {
+            var cachedEntity = entityCache.get(cachedEntry.getKey());
+            var cachedFieldValues = snapshot.get(cachedEntry.getKey());
+            var currentFieldValues = EntityUtil.getEntityFieldsForSnapshot(cachedEntity).toArray();
+            for (var i = 0; i < currentFieldValues.length; i++) {
+                if (!Objects.equals(currentFieldValues[i],cachedFieldValues[i])) {
+                    diff.add(cachedEntity);
+                    break;
+                }
+            }
+        }
+        return diff;
+    }
+
+    @Override
     public void clear() {
         this.entityCache.clear();
         this.snapshot.clear();
@@ -58,6 +74,9 @@ public class PersistenceContextImpl implements PersistenceContext {
 
     private <T> EntityKey getKey(T entity) {
         var id = EntityUtil.getIdValue(entity);
+        if (id == null) {
+            throw new BibernateException("Could not store entity with empty ID in the Persistence Context");
+        }
         return EntityKey.of(entity.getClass(), id);
     }
 }

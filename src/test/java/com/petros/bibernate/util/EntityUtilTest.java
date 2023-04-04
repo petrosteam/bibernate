@@ -1,12 +1,11 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.Id;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Product;
 import com.petros.bibernate.util.model.BrokenPerson;
-import com.petros.bibernate.util.model.UtilNote;
 import com.petros.bibernate.util.model.Person;
 import com.petros.bibernate.util.model.User;
+import com.petros.bibernate.util.model.UtilNote;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,8 +13,6 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,7 +86,7 @@ class EntityUtilTest {
         product.setSaleDate(LocalDate.now());
         product.setStockCount(1);
         var fields = product.getClass().getDeclaredFields();
-        var values = EntityUtil.getEntityFields(product).toArray();
+        var values = EntityUtil.getEntityFieldsForSnapshot(product).toArray();
         for (var i = 0; i < fields.length; i++) {
             var field = fields[i];
             field.setAccessible(true);
@@ -98,6 +95,7 @@ class EntityUtilTest {
             assertEquals(value, fieldValue);
         }
     }
+
     @Test
     @DisplayName("getJoinColumnName returns annotation value when @JoinColumn is present")
     void getJoinColumnAnnotationPresent() throws NoSuchFieldException {

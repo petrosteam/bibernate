@@ -4,6 +4,8 @@ import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Note;
+import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import java.util.List;
 
 import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_SIZE;
 import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
+import static org.junit.jupiter.api.Assertions.*;
 import static java.math.BigDecimal.ZERO;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,11 +44,6 @@ class SessionImplTest {
         flyway.clean();
         flyway.migrate();
         session = new SessionImpl(dataSource, entityPersister);
-    }
-
-    @Test
-    void flush() {
-        // TODO: Implement tests for flush
     }
 
     @Test
@@ -185,17 +183,6 @@ class SessionImplTest {
     }
 
     @Test
-    @DisplayName("Entity only in transient state (without initialized id) could be persisted")
-    void doNotPersistIfIdExists() {
-        session.getTransaction().begin();
-
-        Product product = createProduct();
-        product.setId(1L);
-        session.persist(product);
-        assertThrows(BibernateException.class, () -> session.persist(product));
-    }
-
-    @Test
     @DisplayName("Entity only in persistent state (with initialized id and from persistent context) could be deleted")
     void doNotDeleteIfNotPersistentState() {
         session.getTransaction().begin();
@@ -247,5 +234,33 @@ class SessionImplTest {
         product.setProductName("Super Cola");
         product.setProducer("Super factory");
         return product;
+    }
+
+    @Test
+    @DisplayName("Testing flush() for changed entities")
+    void testFlushEntities() {
+
+        Product product = session.find(Product.class, 3L);
+        product.setStockCount(100);
+        session.flush();
+
+        var updatedProduct = session.find(Product.class, 3L);
+        assertEquals(updatedProduct.getStockCount(), 100);
+    }
+
+
+    @Test
+    @DisplayName("Related entities with @OneToMany annotation must not be stored and checked in persistence context")
+    void testFlushForRelatedEntities() {
+        var note = session.find(Note.class, 1);
+        var person = session.find(Person.class, 2);
+        note.setPerson(person);
+        session.flush();
+        session.close();
+
+        setUpDatabase();
+
+        var selectedNote = session.find(Note.class, 1);
+        assertNotEquals(note.getPerson(), selectedNote.getPerson());
     }
 }

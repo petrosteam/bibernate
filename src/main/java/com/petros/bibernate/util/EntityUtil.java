@@ -1,11 +1,8 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.Column;
-import com.petros.bibernate.annotation.Id;
-import com.petros.bibernate.annotation.JoinColumn;
-import com.petros.bibernate.annotation.ManyToOne;
-import com.petros.bibernate.annotation.Table;
+import com.petros.bibernate.annotation.*;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.context.PersistenceContext;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -122,20 +119,16 @@ public class EntityUtil {
 
     /**
      * Retrieves the list of entity values for a given entity.
+     * Fields marked with {@link OneToMany} annotation are ignored
      *
      * @param entity Bibernate entity
      * @return the list of entity values
      */
-    public static List<Object> getEntityFields(Object entity) {
+    public static List<Object> getEntityFieldsForSnapshot(Object entity) {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .peek(field -> field.setAccessible(true))
-                .map(field -> {
-                    try {
-                        return field.get(entity);
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
-                    }
-                })
+                .filter(field -> !isEntityRelationField(field))
+                .map(field -> getFieldValue(field, entity))
                 .collect(Collectors.toList());
     }
 
@@ -150,12 +143,8 @@ public class EntityUtil {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> !isIdField(field))
                 .map(f -> {
-                    try {
-                        f.setAccessible(true);
-                        return f.get(entity);
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
-                    }
+                    f.setAccessible(true);
+                    return getFieldValue(f, entity);
                 })
                 .collect(Collectors.toList());
     }
@@ -172,15 +161,11 @@ public class EntityUtil {
                 .filter(field -> !isIdField(field))
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
-                    try {
-                        if (EntityUtil.isEntityField(field)) {
-                            var nestedEntity = field.get(entity);
-                            return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
-                        } else {
-                            return field.get(entity);
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new BibernateException(e);
+                    if (EntityUtil.isEntityField(field)) {
+                        var nestedEntity = getFieldValue(field, entity);
+                        return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
+                    } else {
+                        return getFieldValue(field, entity);
                     }
                 })
                 .collect(Collectors.toList());
@@ -199,6 +184,7 @@ public class EntityUtil {
                 .map(EntityUtil::getColumnName)
                 .collect(Collectors.toList());
     }
+
     /**
      * Checks if value is annotated with one of annotations
      * that means complicated entity relations
@@ -208,6 +194,34 @@ public class EntityUtil {
      */
     public static boolean isRegularField(Field field) {
         return !isEntityField(field);
+    }
+
+    /**
+     * Helper method that returns entity fields that not marked with @OneToMany annotation.
+     *
+     * @param entityType type of Bibernate entity
+     * @return array of fields that are suitable for dirty checking
+     */
+    public static Field[] getEntityColumns(Class<?> entityType) {
+        return Arrays.stream(entityType.getDeclaredFields())
+                .filter(field -> !isEntityRelationField(field))
+                .toArray(Field[]::new);
+    }
+
+    /**
+     * Getting field value of entity
+     *
+     * @param field  object field
+     * @param entity Bibernate entity
+     * @return field value
+     */
+    public static Object getFieldValue(Field field, Object entity) {
+        try {
+            return field.get(entity);
+        } catch (IllegalAccessException e) {
+            throw new BibernateException("Could not get field %s value for entity %s".formatted(field.getName(),
+                    getTableName(entity.getClass())));
+        }
     }
 
     /**
@@ -223,5 +237,18 @@ public class EntityUtil {
 
     private static String getDefaultIdColumnName(String fieldName) {
         return fieldName + "_id";
+    }
+
+    /**
+     * Checking if entity field is marked with {@link OneToMany} {@link OneToOne} or {@link ManyToOne} annotation.
+     * If field is marked with these annotations, it could not be added to snapshot context
+     *
+     * @param field entity field
+     * @return true if field has one of annotations described above
+     * @see PersistenceContext#getSnapshotDiff()
+     */
+    private static boolean isEntityRelationField(Field field) {
+        return field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(ManyToOne.class)
+                || field.isAnnotationPresent(OneToOne.class);
     }
 }
