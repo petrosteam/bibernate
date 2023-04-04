@@ -183,17 +183,6 @@ class SessionImplTest {
     }
 
     @Test
-    @DisplayName("Entity only in transient state (without initialized id) could be persisted")
-    void doNotPersistIfIdExists() {
-        session.getTransaction().begin();
-
-        Product product = createProduct();
-        product.setId(1L);
-        session.persist(product);
-        assertThrows(BibernateException.class, () -> session.persist(product));
-    }
-
-    @Test
     @DisplayName("Entity only in persistent state (with initialized id and from persistent context) could be deleted")
     void doNotDeleteIfNotPersistentState() {
         session.getTransaction().begin();

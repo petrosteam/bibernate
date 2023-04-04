@@ -3,6 +3,7 @@ package com.petros.bibernate.session;
 import com.petros.bibernate.action.DeleteEntityAction;
 import com.petros.bibernate.action.EntityAction;
 import com.petros.bibernate.action.InsertEntityAction;
+import com.petros.bibernate.action.UpdateEntityAction;
 import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.exception.BibernateException;
@@ -54,6 +55,8 @@ public class SessionImpl implements Session {
         openConnection();
         try {
             setAutoCommitIfTxOpen(FALSE);
+            persistenceContext.getSnapshotDiff().forEach(entity -> actionQueue.add(new UpdateEntityAction(entityPersister,
+                    entity)));
             actionQueue.forEach(action -> action.execute(connection, persistenceContext));
             actionQueue.clear();
             connection.commit();
@@ -84,7 +87,6 @@ public class SessionImpl implements Session {
         requireOpenTransaction();
         requireTransientState(entity);
         // TODO: 02.04.2023 fetch an id from database before storing entity into queue
-        persistenceContext.cache(entity);
         actionQueue.add(InsertEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
