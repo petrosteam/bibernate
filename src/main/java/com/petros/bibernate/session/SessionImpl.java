@@ -4,14 +4,18 @@ import com.petros.bibernate.action.DeleteEntityAction;
 import com.petros.bibernate.action.EntityAction;
 import com.petros.bibernate.action.InsertEntityAction;
 import com.petros.bibernate.action.UpdateEntityAction;
+import com.petros.bibernate.annotation.FetchType;
+import com.petros.bibernate.annotation.OneToMany;
 import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.dao.EntityPersister;
+import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 import com.petros.bibernate.session.context.PersistenceContextImpl;
 import com.petros.bibernate.util.EntityUtil;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Comparator;
@@ -86,7 +90,6 @@ public class SessionImpl implements Session {
         requireOpenSession();
         requireOpenTransaction();
         requireTransientState(entity);
-        // TODO: 02.04.2023 fetch an id from database before storing entity into queue
         actionQueue.add(InsertEntityAction.builder()
                 .entity(entity)
                 .persister(entityPersister)
@@ -98,7 +101,22 @@ public class SessionImpl implements Session {
         requireOpenSession();
         flush();
         return persistenceContext.getCachedEntity(entityClass, primaryKey)
-                .orElseGet(() -> persistenceContext.cache(entityPersister.findById(entityClass, primaryKey, connection)));
+                .orElseGet(() -> {
+                    T entity = persistenceContext.cache(entityPersister.findById(entityClass, primaryKey, connection));
+                    initializeRelations(entityClass, entity);
+                    return entity;
+                });
+    }
+
+    private <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue, Connection connection) {
+        if (!isOpened) {
+            throw new BibernateException(format("Could not lazily initialize field [%s] of class [%s]", field, entityClass));
+        }
+        return entityPersister.findAll(entityClass, field, fieldValue, connection).stream()
+                .map(entity ->
+                        persistenceContext.getCachedEntity(entityClass, EntityUtil.getIdValue(entity))
+                                .orElseGet(() -> persistenceContext.cache(entity)))
+                .toList();
     }
 
     @Override
@@ -124,7 +142,6 @@ public class SessionImpl implements Session {
         requireOpenSession();
         flush();
         persistenceContext.clear();
-        actionQueue.clear();
         isOpened = false;
         closeConnection();
     }
@@ -158,7 +175,6 @@ public class SessionImpl implements Session {
                                 throw new BibernateException(format("Entity %s must be in transient state. An id value [%s] must not exist", entity.getClass(), id));
                             });
                 });
-
     }
 
     // An entity is in persistent state only when the entity id is not null, and it is present in persistence context
@@ -185,6 +201,49 @@ public class SessionImpl implements Session {
             } catch (SQLException ex) {
                 throw new BibernateException("Could not close database connection", ex);
             }
+        }
+    }
+
+    private <T> void initializeRelations(Class<T> entityClass, T entity) {
+        Field[] entityFields = EntityUtil.getEntityRelationFields(entityClass);
+        for(var entityField : entityFields) {
+            entityField.setAccessible(TRUE);
+            if (EntityUtil.isEntityField(entityField)) {
+                initializeEntityRelation(entity, entityField);
+            } else if (EntityUtil.isEntityCollectionField(entityField)) {
+                initializeCollectionRelation(entity, entityField);
+            }
+        }
+    }
+
+    private <T> void initializeEntityRelation(T entity, Field entityField) {
+        try {
+            var relatedEntity = entityField.get(entity);
+            var relatedEntityClass = entityField.getType();
+            var relatedEntityIdValue = EntityUtil.getIdValue(relatedEntity);
+            var initializedEntity = find(relatedEntityClass, relatedEntityIdValue);
+            entityField.set(entity, initializedEntity);
+        } catch (IllegalAccessException e) {
+            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField, entity), e);
+        }
+    }
+
+    private <T> void initializeCollectionRelation(T entity, Field entityField) {
+        try {
+            var relatedEntityType = EntityUtil.getRelatedEntityType(entityField);
+            var relatedEntityId = EntityUtil.getIdValue(entity);
+            var ann = entityField.getAnnotation(OneToMany.class);
+            var relatedEntityField = relatedEntityType.getDeclaredField(ann.mappedBy());
+            var fetchType = ann.fetchType();
+            if (fetchType.equals(FetchType.LAZY)) {
+                var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, relatedEntityField, relatedEntityId, connection));
+                entityField.set(entity, relatedEntityCollection);
+            } else {
+                var relatedEntityCollection = findAll(relatedEntityType, relatedEntityField, relatedEntityId, connection);
+                entityField.set(entity, relatedEntityCollection);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField, entity), e);
         }
     }
 

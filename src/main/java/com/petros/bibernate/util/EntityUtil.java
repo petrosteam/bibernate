@@ -11,6 +11,7 @@ import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -214,6 +215,12 @@ public class EntityUtil {
                 .toArray(Field[]::new);
     }
 
+    public static Field[] getEntityRelationFields(Class<?> entityType) {
+        return Arrays.stream(entityType.getDeclaredFields())
+                .filter(EntityUtil::isEntityRelationField)
+                .toArray(Field[]::new);
+    }
+
     /**
      * Getting field value of entity
      *
@@ -238,7 +245,8 @@ public class EntityUtil {
      * @return true if entity has ManyToOne relation
      */
     public static boolean isEntityField(Field field) {
-        return field.isAnnotationPresent(ManyToOne.class);
+        return field.isAnnotationPresent(ManyToOne.class)
+                || field.isAnnotationPresent(OneToOne.class);
     }
     public static boolean isEntityCollectionField(Field field) {
         return field.isAnnotationPresent(OneToMany.class);
@@ -256,8 +264,16 @@ public class EntityUtil {
      * @return true if field has one of annotations described above
      * @see PersistenceContext#getSnapshotDiff()
      */
-    private static boolean isEntityRelationField(Field field) {
+    public static boolean isEntityRelationField(Field field) {
         return field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(ManyToOne.class)
                 || field.isAnnotationPresent(OneToOne.class);
+    }
+
+    public static Class<?> getRelatedEntityType(Field entityField) {
+        var paramType = (ParameterizedType) entityField.getGenericType();
+        var actualTypeArgs = paramType.getActualTypeArguments();
+        var actualTypeArgument = actualTypeArgs[0];
+
+        return (Class<?>) actualTypeArgument;
     }
 }

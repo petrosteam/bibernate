@@ -1,13 +1,9 @@
 package com.petros.bibernate.session.model;
 
-import com.petros.bibernate.annotation.Column;
-import com.petros.bibernate.annotation.Entity;
-import com.petros.bibernate.annotation.Id;
-import com.petros.bibernate.annotation.JoinColumn;
-import com.petros.bibernate.annotation.OneToMany;
-import com.petros.bibernate.annotation.Table;
+import com.petros.bibernate.annotation.*;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -20,7 +16,6 @@ public class Car {
     @Column("name")
     private String name;
 
-    @OneToMany
-    @JoinColumn("car_id")
-    private List<Wheel> wheels;
+    @OneToMany(mappedBy = "car")
+    private List<Wheel> wheels = new ArrayList<>();
 }
