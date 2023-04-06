@@ -13,6 +13,7 @@ public class PersonInfo {
     @Column("info")
     String info;
 
+    @MapsId
     @OneToOne
     @JoinColumn("id")
     private Person person;

@@ -32,7 +32,7 @@ CREATE TABLE notes
 
 CREATE TABLE person_info
 (
-    id         BIGSERIAL,
+    id         BIGINT,
     info varchar(255) NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (id) REFERENCES persons (id)

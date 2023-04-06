@@ -8,6 +8,7 @@ import lombok.Data;
 @Table("persons")
 public class Person {
     @Id
+    @GeneratedValue
     private Long id;
 
     @Column("first_name")

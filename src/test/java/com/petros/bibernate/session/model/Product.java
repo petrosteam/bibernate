@@ -2,6 +2,7 @@ package com.petros.bibernate.session.model;
 
 import com.petros.bibernate.annotation.Column;
 import com.petros.bibernate.annotation.Entity;
+import com.petros.bibernate.annotation.GeneratedValue;
 import com.petros.bibernate.annotation.Id;
 import com.petros.bibernate.annotation.Table;
 import lombok.Getter;
@@ -18,6 +19,7 @@ import java.time.LocalTime;
 @Table("products")
 public class Product {
     @Id
+    @GeneratedValue
     private Long id;
 
     @Column("name")

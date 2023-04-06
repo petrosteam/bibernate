@@ -1,6 +1,14 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.*;
+import com.petros.bibernate.annotation.Column;
+import com.petros.bibernate.annotation.GeneratedValue;
+import com.petros.bibernate.annotation.Id;
+import com.petros.bibernate.annotation.JoinColumn;
+import com.petros.bibernate.annotation.ManyToOne;
+import com.petros.bibernate.annotation.MapsId;
+import com.petros.bibernate.annotation.OneToMany;
+import com.petros.bibernate.annotation.OneToOne;
+import com.petros.bibernate.annotation.Table;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 
@@ -18,7 +26,8 @@ import static java.util.Optional.ofNullable;
 public class EntityUtil {
 
     /**
-     * Retrieves the database table name from a given entity type. Returns the value of annotation @Table if exists, otherwise simple class name is returned
+     * Retrieves the database table name from a given entity type. Returns the value of annotation @Table if exists,
+     * otherwise simple class name is returned
      *
      * @param entityClass entity class that is mapped to database table
      * @return the table name
@@ -30,7 +39,8 @@ public class EntityUtil {
     }
 
     /**
-     * Retrieves the database column name from a given class field. Returns the value of annotation @Column if exists, otherwise simple field name is returned
+     * Retrieves the database column name from a given class field. Returns the value of annotation @Column if
+     * exists, otherwise simple field name is returned
      *
      * @param field field that is mapped to database column
      * @return the column name
@@ -104,15 +114,25 @@ public class EntityUtil {
     }
 
     /**
-     * Retrieves the list of columns that are insertable for a given entity class.
-     * Columns annotated with {@link Id} are excluded from the list.
-     *
-     * @param entityClass the entity class for which to retrieve the insertable columns
-     * @return the list of insertable columns
+
+     Determines whether a field is annotated with {@link Id} and {@link GeneratedValue}.
+     @param field the field to check
+     @return true if the field is annotated with {@link Id} and {@link GeneratedValue}, false otherwise
+     */
+    public static boolean isGeneratedIdField(Field field) {
+        return field.isAnnotationPresent(Id.class) && field.isAnnotationPresent(GeneratedValue.class);
+    }
+
+    /**
+     Retrieves the list of columns that are insertable for a given entity class.
+     This method excludes columns annotated with {@link Id} and {@link GeneratedValue} and fields marked with {@link MapsId}.
+     @param entityClass the entity class for which to retrieve the insertable columns
+     @return the list of insertable columns
      */
     public static List<String> getInsertableColumns(Class<?> entityClass) {
         return Arrays.stream(entityClass.getDeclaredFields())
-                .filter(field -> !isIdField(field))
+                .filter(field -> !isGeneratedIdField(field))
+                .filter(field -> !field.isAnnotationPresent(MapsId.class))
                 .map(EntityUtil::getColumnName)
                 .collect(Collectors.toList());
     }
@@ -150,25 +170,53 @@ public class EntityUtil {
     }
 
     /**
-     * Retrieves the list of insertable values for a given entity.
-     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
-     *
-     * @param entity the entity for which to retrieve the insertable values
-     * @return the list of insertable values
+     Retrieves the list of values that are insertable for a given entity.
+     Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     If a field is annotated with {@link MapsId}, the ID value is taken from the corresponding nested entity.
+     @param entity the entity for which to retrieve the insertable values
+     @return the list of insertable values
      */
     public static List<Object> getInsertableValues(Object entity) {
+        Field mapsIdField = getMapsIdField(entity.getClass());
         return Arrays.stream(entity.getClass().getDeclaredFields())
-                .filter(field -> !isIdField(field))
+                .filter(field -> !isGeneratedIdField(field))
+                .filter(field -> !field.isAnnotationPresent(MapsId.class))
                 .peek(field -> field.setAccessible(true))
                 .map(field -> {
-                    if (EntityUtil.isEntityField(field)) {
-                        var nestedEntity = getFieldValue(field, entity);
-                        return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
+                    if (isIdField(field) && mapsIdField != null) {
+                        mapsIdField.setAccessible(true);
+                        return getIdValueFromNestedEntity(entity, mapsIdField);
+                    } else if (EntityUtil.isEntityField(field)) {
+                        return getIdValueFromNestedEntity(entity, field);
                     } else {
                         return getFieldValue(field, entity);
                     }
                 })
                 .collect(Collectors.toList());
+    }
+
+    private static Object getIdValueFromNestedEntity(Object entity, Field field) {
+        var nestedEntity = getFieldValue(field, entity);
+        return nestedEntity == null ? null : EntityUtil.getIdValue(nestedEntity);
+    }
+
+    /**
+     * Retrieves the field marked with {@link MapsId} from a given entity class.
+     *
+     * @param entityClass the entity class for which to retrieve the field marked with {@link MapsId}
+     * @return the field marked with {@link MapsId}, or null if no such field exists
+     * @throws BibernateException if there are multiple fields marked with {@link MapsId}
+     */
+    public static Field getMapsIdField(Class<?> entityClass) {
+        List<Field> mapsIdFields = Arrays.stream(entityClass.getDeclaredFields())
+                .filter(EntityUtil::isEntityField)
+                .filter(f -> f.isAnnotationPresent(MapsId.class))
+                .toList();
+        if (mapsIdFields.size() > 1) {
+            throw new BibernateException(format(
+                    "Entity %s has multiple fields annotated with @MapsId", entityClass.getSimpleName()));
+        }
+        return mapsIdFields.isEmpty() ? null : mapsIdFields.get(0);
     }
 
     /**

@@ -430,7 +430,9 @@ public class EntityPersisterTest {
         personInfo.setInfo(info);
         personInfo.setPerson(personInDatabase);
 
-        PersonInfo createdInfo = entityPersister.insert(personInfo, dataSource.getConnection());
+        entityPersister.insert(personInfo, dataSource.getConnection());
+
+        PersonInfo createdInfo = entityPersister.findById(PersonInfo.class, persistedPersonId, dataSource.getConnection());
 
         assertNotNull(createdInfo);
         assertNotNull(createdInfo.getId());

@@ -29,7 +29,7 @@ CREATE TABLE notes
 
 CREATE TABLE person_info
 (
-    id bigint auto_increment,
+    id bigint,
     info      varchar(255) NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (id) REFERENCES persons(id)

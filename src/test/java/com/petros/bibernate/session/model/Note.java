@@ -8,6 +8,7 @@ import lombok.Data;
 @Table("notes")
 public class Note {
     @Id
+    @GeneratedValue
     private Long id;
 
     @Column("body")
