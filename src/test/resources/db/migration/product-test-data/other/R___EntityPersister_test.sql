@@ -27,6 +27,29 @@ CREATE TABLE notes
     PRIMARY KEY (id),
     FOREIGN KEY (person_id) REFERENCES persons(id)
 );
+CREATE TABLE cars
+(
+    id         bigint auto_increment,
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE eager_wheel_cars
+(
+    id         bigint auto_increment,
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE wheels
+(
+    id        bigint auto_increment,
+    side      varchar(255) NOT NULL,
+    position      varchar(255) NOT NULL,
+    car_id bigint NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (car_id) REFERENCES cars(id)
+);
 
 CREATE TABLE person_info
 (
@@ -48,3 +71,14 @@ VALUES (1, 'Oleg'),
 INSERT INTO notes(id, body, person_id)
 VALUES (1, 'Body of Note-1', 1),
        (2, 'Body of Note-2', 2);
+
+INSERT INTO cars(id, name)
+VALUES (1, 'Tavriya');
+
+INSERT INTO eager_wheel_cars(id, name)
+VALUES (1, 'Eager-Tavriya');
+
+INSERT INTO wheels(id, side, position, car_id)
+VALUES (1, 'Left', 'Front', 1),
+       (2, 'Left', 'Rear', 1),
+       (3, 'Right', 'Front', 1);

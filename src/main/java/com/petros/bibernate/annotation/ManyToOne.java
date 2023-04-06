@@ -18,11 +18,17 @@ import java.lang.annotation.Target;
  *      ...
  * }
  * }</pre>
- * @see JoinColumn
  *
+ * @see JoinColumn
  */
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ManyToOne {
+
+    /**
+     * Returns a fetchType which is Eager by default. It means that child entity will be loaded from database with
+     * parent entity. Currently only EAGER behaviour is realized.
+     */
+    FetchType fetchType() default FetchType.EAGER;
 }

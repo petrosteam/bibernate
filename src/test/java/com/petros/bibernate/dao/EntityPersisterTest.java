@@ -1,11 +1,15 @@
 package com.petros.bibernate.dao;
 
+import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.session.model.Car;
+import com.petros.bibernate.session.model.EagerWheelCar;
 import com.petros.bibernate.session.model.Note;
 import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.PersonInfo;
 import com.petros.bibernate.session.model.Product;
+import com.petros.bibernate.session.model.Wheel;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -100,7 +104,7 @@ public class EntityPersisterTest {
                 .locations("classpath:db/migration/product-test-data" + subFolder).load();
         flyway.clean();
         flyway.migrate();
-        entityPersister = new EntityPersister( false);
+        entityPersister = new EntityPersister(false);
     }
 
     @AfterEach
@@ -501,6 +505,46 @@ public class EntityPersisterTest {
         // Convert the byte array to a string and check if it contains the expected output
         String output = outContent.toString();
         assertTrue(output.contains("SQL statement: SELECT * FROM products WHERE id = ?;"));
+    }
+
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @OneToMany relation")
+    void testFindOneWithOneToManyRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Car car = entityPersister.findOne(Car.class, Car.class.getDeclaredField("id"), 1, dataSource.getConnection());
+        assertNotNull(car);
+        List<Wheel> carWheels = car.getWheels();
+        assertNotNull(carWheels);
+        assertEquals(1L, car.getId());
+        assertEquals(3, car.getWheels().size());
+
+        Wheel firstWheel = carWheels.get(0);
+        assertEquals(1, firstWheel.getId());
+        assertEquals("Left", firstWheel.getSide());
+        assertEquals("Front", firstWheel.getPosition());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @OneToMany relation and Eager Load")
+    void testFindOneWithOneToManyEagerRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        EagerWheelCar car = entityPersister.findOne(EagerWheelCar.class, EagerWheelCar.class.getDeclaredField("id"), 1, dataSource.getConnection());
+        assertNotNull(car);
+        List<Wheel> carWheels = car.getWheels();
+        assertNotNull(carWheels);
+        assertFalse(carWheels.getClass().isAssignableFrom(LazyList.class));
+        assertEquals(1L, car.getId());
+        assertEquals(3, car.getWheels().size());
+
+        Wheel firstWheel = carWheels.get(0);
+        assertEquals(1, firstWheel.getId());
+        assertEquals("Left", firstWheel.getSide());
+        assertEquals("Front", firstWheel.getPosition());
     }
 
     public enum DatabaseType {
