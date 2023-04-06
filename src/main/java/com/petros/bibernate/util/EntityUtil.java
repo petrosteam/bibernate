@@ -1,6 +1,12 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.*;
+import com.petros.bibernate.annotation.Column;
+import com.petros.bibernate.annotation.Id;
+import com.petros.bibernate.annotation.JoinColumn;
+import com.petros.bibernate.annotation.ManyToOne;
+import com.petros.bibernate.annotation.OneToMany;
+import com.petros.bibernate.annotation.OneToOne;
+import com.petros.bibernate.annotation.Table;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 
@@ -36,7 +42,7 @@ public class EntityUtil {
      * @return the column name
      */
     public static String getColumnName(Field field) {
-        if (EntityUtil.isEntityField(field)) {
+        if (EntityUtil.isEntityField(field) || EntityUtil.isEntityCollectionField(field)) {
             return ofNullable(field.getAnnotation(JoinColumn.class))
                     .map(JoinColumn::value)
                     .orElse(getDefaultIdColumnName(field.getName()));
@@ -193,7 +199,7 @@ public class EntityUtil {
      * @return true if field has simple value and not related to another entity
      */
     public static boolean isRegularField(Field field) {
-        return !isEntityField(field);
+        return !isEntityField(field) && !isEntityCollectionField(field);
     }
 
     /**
@@ -233,6 +239,9 @@ public class EntityUtil {
      */
     public static boolean isEntityField(Field field) {
         return field.isAnnotationPresent(ManyToOne.class);
+    }
+    public static boolean isEntityCollectionField(Field field) {
+        return field.isAnnotationPresent(OneToMany.class);
     }
 
     private static String getDefaultIdColumnName(String fieldName) {

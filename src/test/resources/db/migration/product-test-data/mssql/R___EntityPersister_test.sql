@@ -26,6 +26,28 @@ CREATE TABLE notes
     PRIMARY KEY (id),
     FOREIGN KEY (person_id) REFERENCES persons (id)
 );
+CREATE TABLE cars
+(
+    id         BIGINT IDENTITY(1,1),
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE TABLE eager_wheel_cars
+(
+    id         BIGINT IDENTITY(1,1),
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE wheels
+(
+    id        BIGINT IDENTITY(1,1),
+    side      varchar(255) NOT NULL,
+    position      varchar(255) NOT NULL,
+    car_id BIGINT    NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (car_id) REFERENCES cars (id)
+);
 INSERT INTO products( name, producer, price, created_at, is_available, stock_count, weight, description, sale_date, sale_time)
 VALUES ('Play Station', 'Sony', 249.00, '2023-01-01 12:00:00', 1, 100, 3.0, 'Play Station console', '2023-01-10', '09:00:00'),
        ('XBox', 'Microsoft', 215.00, '2023-01-02 14:00:00', 1, 150, 3.5, 'XBox console', '2023-01-15', '10:00:00'),
@@ -38,3 +60,14 @@ VALUES ('Oleg'),
 INSERT INTO notes(body, person_id)
 VALUES ('Body of Note-1', 1),
        ('Body of Note-2', 2);
+
+INSERT INTO cars(name)
+VALUES ('Tavriya');
+
+INSERT INTO eager_wheel_cars(name)
+VALUES ('Eager-Tavriya');
+
+INSERT INTO wheels(side, position, car_id)
+VALUES ('Left', 'Front', 1),
+       ('Left', 'Rear', 1),
+       ('Right', 'Front', 1);

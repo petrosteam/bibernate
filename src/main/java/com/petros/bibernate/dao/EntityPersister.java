@@ -1,10 +1,14 @@
 package com.petros.bibernate.dao;
 
+import com.petros.bibernate.annotation.FetchType;
+import com.petros.bibernate.annotation.OneToMany;
+import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.exception.BibernateException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.Date;
@@ -28,6 +32,7 @@ import static com.petros.bibernate.util.EntityUtil.getJoinColumnName;
 import static com.petros.bibernate.util.EntityUtil.getTableName;
 import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
 import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
+import static com.petros.bibernate.util.EntityUtil.isEntityCollectionField;
 import static com.petros.bibernate.util.EntityUtil.isEntityField;
 import static com.petros.bibernate.util.EntityUtil.isRegularField;
 import static java.lang.Boolean.FALSE;
@@ -294,7 +299,7 @@ public class EntityPersister {
                 if (isRegularField(entityField)) {
                     String columnName = getColumnName(entityField);
                     var columnValue = convertToJavaType(entityField, resultSet.getObject(columnName));
-                entityField.set(entity, columnValue);
+                    entityField.set(entity, columnValue);
                 } else if (isEntityField(entityField)) {
                     var relatedEntityClass = entityField.getType();
 
@@ -302,9 +307,20 @@ public class EntityPersister {
                     var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
 
                     var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue, connection);
-
-                    //TODO: place for lazy load future implementation
                     entityField.set(entity, relatedEntity);
+                } else if (isEntityCollectionField(entityField)) {
+                    var relatedEntityType = getRelatedEntityType(entityField);
+                    var relatedEntityId = getIdValue(entity);
+                    var ann = entityField.getAnnotation(OneToMany.class);
+                    var fetchType = ann.fetchType();
+                    if (fetchType.equals(FetchType.LAZY)) {
+                        var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, entityField, relatedEntityId, connection));
+                        entityField.set(entity, relatedEntityCollection);
+                    } else {
+                        var relatedEntityCollection = findAll(relatedEntityType, entityField, relatedEntityId, connection);
+                        entityField.set(entity, relatedEntityCollection);
+                    }
+
                 }
             }
             return entity;
@@ -312,6 +328,14 @@ public class EntityPersister {
                  SQLException e) {
             throw new BibernateException(e);
         }
+    }
+
+    private Class<?> getRelatedEntityType(Field entityField) {
+        var paramType = (ParameterizedType) entityField.getGenericType();
+        var actualTypeArgs = paramType.getActualTypeArguments();
+        var actualTypeArgument = actualTypeArgs[0];
+
+        return (Class<?>) actualTypeArgument;
     }
 
     private static Object convertToJavaType(Field field, Object value) throws IllegalAccessException, SQLException {
