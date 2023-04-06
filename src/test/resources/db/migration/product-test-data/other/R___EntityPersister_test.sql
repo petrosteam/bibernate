@@ -33,6 +33,14 @@ CREATE TABLE cars
     name varchar(255) NOT NULL,
     PRIMARY KEY (id)
 );
+
+CREATE TABLE eager_wheel_cars
+(
+    id         bigint auto_increment,
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE wheels
 (
     id        bigint auto_increment,
@@ -58,6 +66,9 @@ VALUES (1, 'Body of Note-1', 1),
 
 INSERT INTO cars(id, name)
 VALUES (1, 'Tavriya');
+
+INSERT INTO eager_wheel_cars(id, name)
+VALUES (1, 'Eager-Tavriya');
 
 INSERT INTO wheels(id, side, position, car_id)
 VALUES (1, 'Left', 'Front', 1),

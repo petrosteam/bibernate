@@ -37,6 +37,13 @@ CREATE TABLE cars
     PRIMARY KEY (id)
 );
 
+CREATE TABLE eager_wheel_cars
+(
+    id         BIGSERIAL,
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE wheels
 (
     id        BIGSERIAL,
@@ -65,6 +72,9 @@ VALUES ('Body of Note-1', 1),
 
 INSERT INTO cars(name)
 VALUES ('Tavriya');
+
+INSERT INTO eager_wheel_cars(name)
+VALUES ('Eager-Tavriya');
 
 INSERT INTO wheels(side, position, car_id)
 VALUES ('Left', 'Front', 1),

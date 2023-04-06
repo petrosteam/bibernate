@@ -1,5 +1,8 @@
 package com.petros.bibernate.dao;
 
+import com.petros.bibernate.annotation.FetchType;
+import com.petros.bibernate.annotation.OneToMany;
+import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.exception.BibernateException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -304,14 +307,20 @@ public class EntityPersister {
                     var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
 
                     var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue, connection);
-
                     entityField.set(entity, relatedEntity);
                 } else if (isEntityCollectionField(entityField)) {
                     var relatedEntityType = getRelatedEntityType(entityField);
                     var relatedEntityId = getIdValue(entity);
-                    var relatedEntityCollection = findAll(relatedEntityType, entityField, relatedEntityId, connection);
+                    var ann = entityField.getAnnotation(OneToMany.class);
+                    var fetchType = ann.fetchType();
+                    if (fetchType.equals(FetchType.LAZY)) {
+                        var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, entityField, relatedEntityId, connection));
+                        entityField.set(entity, relatedEntityCollection);
+                    } else {
+                        var relatedEntityCollection = findAll(relatedEntityType, entityField, relatedEntityId, connection);
+                        entityField.set(entity, relatedEntityCollection);
+                    }
 
-                    entityField.set(entity, relatedEntityCollection);
                 }
             }
             return entity;

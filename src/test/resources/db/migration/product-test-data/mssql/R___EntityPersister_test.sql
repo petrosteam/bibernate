@@ -32,6 +32,12 @@ CREATE TABLE cars
     name varchar(255) NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE TABLE eager_wheel_cars
+(
+    id         BIGINT IDENTITY(1,1),
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
 
 CREATE TABLE wheels
 (
@@ -57,6 +63,9 @@ VALUES ('Body of Note-1', 1),
 
 INSERT INTO cars(name)
 VALUES ('Tavriya');
+
+INSERT INTO eager_wheel_cars(name)
+VALUES ('Eager-Tavriya');
 
 INSERT INTO wheels(side, position, car_id)
 VALUES ('Left', 'Front', 1),

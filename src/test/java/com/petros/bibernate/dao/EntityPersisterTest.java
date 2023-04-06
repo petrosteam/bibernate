@@ -1,8 +1,10 @@
 package com.petros.bibernate.dao;
 
+import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Car;
+import com.petros.bibernate.session.model.EagerWheelCar;
 import com.petros.bibernate.session.model.Note;
 import com.petros.bibernate.session.model.Person;
 import com.petros.bibernate.session.model.Product;
@@ -444,6 +446,26 @@ public class EntityPersisterTest {
         assertNotNull(car);
         List<Wheel> carWheels = car.getWheels();
         assertNotNull(carWheels);
+        assertEquals(1L, car.getId());
+        assertEquals(3, car.getWheels().size());
+
+        Wheel firstWheel = carWheels.get(0);
+        assertEquals(1, firstWheel.getId());
+        assertEquals("Left", firstWheel.getSide());
+        assertEquals("Front", firstWheel.getPosition());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @OneToMany relation and Eager Load")
+    void testFindOneWithOneToManyEagerRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        EagerWheelCar car = entityPersister.findOne(EagerWheelCar.class, EagerWheelCar.class.getDeclaredField("id"), 1, dataSource.getConnection());
+        assertNotNull(car);
+        List<Wheel> carWheels = car.getWheels();
+        assertNotNull(carWheels);
+        assertFalse(carWheels.getClass().isAssignableFrom(LazyList.class));
         assertEquals(1L, car.getId());
         assertEquals(3, car.getWheels().size());
 
