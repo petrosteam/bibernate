@@ -6,6 +6,7 @@ import com.petros.bibernate.session.model.Car;
 import com.petros.bibernate.session.model.EagerWheelCar;
 import com.petros.bibernate.session.model.Note;
 import com.petros.bibernate.session.model.Person;
+import com.petros.bibernate.session.model.PersonInfo;
 import com.petros.bibernate.session.model.Product;
 import com.petros.bibernate.session.model.Wheel;
 import org.flywaydb.core.Flyway;
@@ -415,6 +416,78 @@ public class EntityPersisterTest {
 
     @ParameterizedTest
     @EnumSource(DatabaseType.class)
+    @DisplayName("Test insert with @OneToOne relation")
+    void testInsertWithOneToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Long persistedPersonId = 2L;
+        String persistedPersonName = "Viktor";
+        Person personInDatabase = new Person();
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
+
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setPerson(personInDatabase);
+
+        entityPersister.insert(personInfo, dataSource.getConnection());
+
+        PersonInfo createdInfo = entityPersister.findById(PersonInfo.class, persistedPersonId, dataSource.getConnection());
+
+        assertNotNull(createdInfo);
+        assertNotNull(createdInfo.getId());
+        assertEquals(createdInfo.getInfo(), info);
+        assertNotNull(createdInfo.getPerson().getId());
+        assertEquals(createdInfo.getId(), createdInfo.getPerson().getId());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Test the find method with @OneToOne relation")
+    void testFindWithOneToOneRelation(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+        Long persistedPersonId = 1L;
+        String persistedPersonName = "Viktor";
+        Person personInDatabase = new Person();
+        personInDatabase.setId(persistedPersonId);
+        personInDatabase.setFirstName(persistedPersonName);
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setPerson(personInDatabase);
+
+        entityPersister.insert(personInfo, dataSource.getConnection());
+
+        PersonInfo personInfoFromDB = entityPersister.findOne(PersonInfo.class, PersonInfo.class.getDeclaredField("id"),
+                1L,
+                dataSource.getConnection());
+        assertNotNull(personInfoFromDB);
+        assertEquals(personInfoFromDB.getPerson().getId(), persistedPersonId);
+        assertNotNull(personInfoFromDB.getInfo(), info);
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
+    @DisplayName("Testing insert method with @OneToOne relation with non-exist parent entity")
+    void testInsertWithOneToOneRelationWithNullRelatedEntity(DatabaseType databaseType) throws NoSuchFieldException {
+        setUpDatabaseType(databaseType);
+
+        Person newPerson = new Person();
+        newPerson.setId(5L);
+        newPerson.setFirstName("PersonNotInTable");
+
+        PersonInfo personInfo = new PersonInfo();
+        String info = "Hello world";
+        personInfo.setInfo(info);
+        personInfo.setId(5L);
+        personInfo.setPerson(newPerson);
+
+        assertThrows(BibernateException.class, () -> entityPersister.insert(personInfo, dataSource.getConnection()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseType.class)
     @DisplayName("Test showSql enabled")
     public void testShowSqlEnabled(DatabaseType databaseType) {
         setUpDatabaseType(databaseType);
@@ -429,7 +502,6 @@ public class EntityPersisterTest {
         // Convert the byte array to a string and check if it contains the expected output
         String output = outContent.toString();
         assertTrue(output.contains("SQL statement: SELECT * FROM products WHERE id = ?;"));
-
     }
 
 
@@ -459,6 +531,6 @@ public class EntityPersisterTest {
     }
 
     public enum DatabaseType {
-        H2, POSTGRES, MYSQL, MSSQL
+        H2, POSTGRES, MSSQL, MYSQL
     }
 }

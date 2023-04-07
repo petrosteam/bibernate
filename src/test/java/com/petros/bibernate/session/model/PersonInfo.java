@@ -5,16 +5,16 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table("notes")
-public class Note {
+@Table("person_info")
+public class PersonInfo {
     @Id
-    @GeneratedValue
     private Long id;
 
-    @Column("body")
-    private String body;
+    @Column("info")
+    String info;
 
-    @ManyToOne
-    @JoinColumn("person_id")
+    @MapsId
+    @OneToOne
+    @JoinColumn("id")
     private Person person;
 }

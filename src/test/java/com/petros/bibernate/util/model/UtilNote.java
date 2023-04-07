@@ -5,6 +5,7 @@ import com.petros.bibernate.annotation.*;
 @Table("notes")
 public class UtilNote {
     @Id
+    @GeneratedValue
     private Long id;
 
     @Column("body")

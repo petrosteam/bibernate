@@ -7,14 +7,16 @@ import java.lang.annotation.Target;
 
 /**
  * Defines a single-valued association to another entity that has one-to-one relation.
- *
+ * We use {@link JoinColumn} annotation to specify foreign key in current entity that points to parent entity.
+ * <br>
  * Example:
  * <pre>{@code
  * @Entity
- * public class Owner {
+ * public class OwnerDetails {
  *      ...
  *      @OneToOne
- *      private OwnerDetails ownerDetails;
+ *      @JoinColumn("owner_id")
+ *      private Owner owner;
  *      ...
  * }
  * }</pre>

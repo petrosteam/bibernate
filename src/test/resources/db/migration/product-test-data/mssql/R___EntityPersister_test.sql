@@ -26,6 +26,15 @@ CREATE TABLE notes
     PRIMARY KEY (id),
     FOREIGN KEY (person_id) REFERENCES persons (id)
 );
+
+CREATE TABLE person_info
+(
+    id         BIGINT,
+    info varchar(255) NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (id) REFERENCES persons (id)
+);
+
 CREATE TABLE cars
 (
     id         BIGINT IDENTITY(1,1),

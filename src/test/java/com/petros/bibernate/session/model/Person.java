@@ -1,9 +1,6 @@
 package com.petros.bibernate.session.model;
 
-import com.petros.bibernate.annotation.Column;
-import com.petros.bibernate.annotation.Entity;
-import com.petros.bibernate.annotation.Id;
-import com.petros.bibernate.annotation.Table;
+import com.petros.bibernate.annotation.*;
 import lombok.Data;
 
 @Data
@@ -11,6 +8,7 @@ import lombok.Data;
 @Table("persons")
 public class Person {
     @Id
+    @GeneratedValue
     private Long id;
 
     @Column("first_name")

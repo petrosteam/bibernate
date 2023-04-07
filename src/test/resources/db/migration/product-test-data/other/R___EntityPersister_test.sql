@@ -51,6 +51,14 @@ CREATE TABLE wheels
     FOREIGN KEY (car_id) REFERENCES cars(id)
 );
 
+CREATE TABLE person_info
+(
+    id         bigint,
+    info varchar(255) NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (id) REFERENCES persons(id)
+);
+
 CREATE TABLE items
 (
     id         bigint auto_increment,
