@@ -5,30 +5,46 @@
 # Bibernate User Guide
 ### Table of Contents
 
-- [Introduction](##introduction)
-- [Getting Started](#getting-started)
-- [Using Bibernate](#using-bibernate)
-    - [Creating a Session](#creating-a-session)
-    - [Creating Entities](#creating-entities)
-    - [Inserting Entities](#inserting-entities)
-    - [Retrieving Entities](#retrieving-entities)
-    - [Updating Entities](#updating-entities)
-    - [Deleting Entities](#deleting-entities)
-    - [Closing the Session](#closing-the-session)
+- [Introduction](#introduction)
 - [Features](#features)
-    - [Configuration](#configuration)
-    - [Mapping](#mapping)
-    - [Persistence Context](#persistence-context)
-    - [Exception Handling](#exception-handling)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+    - [Define your entities](#1-define-your-entities)
+    - [Initialize Bibernate and perform CRUD operations](#2-initialize-bibernate-and-perform-crud-operations)
+- [Configuration](#configuration)
+- [Mapping](#mapping)
+- [Persistence Context](#persistence-context)
+- [Exception Handling](#exception-handling)
 - [Conclusion](#conclusion)
 
 
 ## Introduction
-**Bibernate** is a custom and simplified analog of Hibernate, a popular Object-Relational Mapping (ORM) framework. It is written in plain Java and provides basic functionality for persistence services.
+**Bibernate** is a lightweight, easy-to-use Object Relational Mapping (ORM) library for Java. It enables developers to interact with relational databases through a simple API, abstracting away the need for writing raw SQL queries.
+
+## Features
+- Annotation-based entity configuration
+- Basic CRUD operations
+- Support for One-to-One, Many-to-One, and One-to-Many relationships
+- Lazy loading for related entities
+- Transaction management
+- Custom connection pool with customizable settings
+- Automatic table and column name mapping
+- Customizable table and column names using annotations
+- Support for primary key auto-generation strategies
+- Support for @OneToOne entity relationships with @MapsId annotation
+- Detailed logging for troubleshooting and performance analysis
+- Flexible entity field mapping and data type conversions
+- Extensive error handling and custom exceptions
+- Clean and intuitive API for easy integration with existing projects
+- Comprehensive Javadoc documentation for each class and method
+## Prerequisites
+- Java 17 or higher
+- Maven or Gradle (for dependency management)
 
 ## Getting Started
-
 To use Bibernate in your Java application, follow these steps:
+
 
 1. Add the Bibernate dependency to your project's *pom.xml* file:
     ```
@@ -38,9 +54,15 @@ To use Bibernate in your Java application, follow these steps:
       <version>1.0-SNAPSHOT</version>
     </dependency>
     ```
-   Additionally, make sure to include the JDBC driver for your chosen database system as a dependency in your project's *pom.xml* file. Bibernate's features have been thoroughly tested with *MySQL*, *Postgres*, *MS SQL*, and *H2* databases, but other database systems should work as well.
+   Or, if you are using Gradle, add the following dependency:
 
+    ```
+    implementation 'com.petros.bibernate:bibernate:1.0-SNAPSHOT'
+    ```
+
+   Additionally, make sure to include the JDBC driver for your chosen database system as a dependency in your project. Bibernate's features have been thoroughly tested with *MySQL*, *Postgres*, *MS SQL*, and *H2* databases, but other database systems should work as well.
 2. Before using Bibernate, you need to create a *SessionFactory* instance. The *SessionFactory* is a thread-safe object that creates *Session* instances. To create a *SessionFactory*, you can use one of the following approaches:
+
    * Calling the *Persistence.createSessionFactory()* method without arguments to use the default configuration specified in the *src/main/resources/application.properties* file:
    
    ```java
@@ -62,81 +84,82 @@ To use Bibernate in your Java application, follow these steps:
    For more details on configuration options, see the [Configuration](#configuration) section in the Features chapter.
 
 
-## Using Bibernate
-### Creating a Session
-Once you have a *SessionFactory*, you can create a *Session* instance:
-
-```java
-Session session = sessionFactory.openSession();
-```
-The openSession() method creates a new *Session* instance. You should create a new *Session* instance for each unit of work.
-
-### Creating Entities
-To persist an object using Bibernate, you must first create an entity class that maps to a database table. The entity class must have a no-argument constructor and fields annotated with the @Column and @Id annotations.
-
-Here's an example entity class Person:
+## Usage
+### 1. Define your entities
+Create Java classes that represent your database tables and add the necessary annotations:
 
 ```java
 @Entity
-@Table("person")
-public class Person {
+@Table("users")
+@Data
+public class User {
+
     @Id
-    @Column(name = "id")
-    private int id;
+    @GeneratedValue
+    @Column("id")
+    private Integer id;
 
-    @Column(name = "name")
-    private String name;
+    @Column("username")
+    private String username;
 
-    @Column(name = "age")
-    private int age;
+    @Column("email")
+    private String email;
 
     // Getters and setters
 }
 ```
-### Inserting Entities
-To insert a new entity into the database, use the *Session* class's *persist()* method:
+**Note**: A no-argument constructor is required for Bibernate to work with your entities. Make sure to include one in each of your entity classes.
+### 2. Initialize Bibernate and perform CRUD operations
 
 ```java
-Person person = new Person();
-person.setName("John Smith");
-person.setAge(30);
-session.persist(person);
+public class Main {
+    public static void main(String[] args) {
+        // Initialize Bibernate
+        SessionFactory sessionFactory = Persistence.createSessionFactory();
+
+        // Create a new user
+        User user = new User();
+        user.setUsername("JohnDoe");
+        user.setEmail("john.doe@example.com");
+
+        // Save the user to the database
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.getTransaction();
+            transaction.begin();
+            session.persist(user);
+            transaction.commit();
+        }
+
+        // Retrieve the user by ID
+        try (Session session = sessionFactory.openSession()) {
+            User retrievedUser = session.find(User.class, 1);
+            System.out.println("Retrieved user: "  + retrievedUser.getUsername());
+        }
+
+        // Update the user's email
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.getTransaction();
+            transaction.begin();
+            User retrievedUser = session.find(User.class, 1);
+            retrievedUser.setEmail("updated.email@example.com");
+            transaction.commit();
+        }
+
+        // Delete the user
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.getTransaction();
+            transaction.begin();
+            User retrievedUser = session.find(User.class, 1);
+            session.remove(retrievedUser);
+            transaction.commit();
+        }
+
+        sessionFactory.close();
+    }
+}
 ```
-### Retrieving Entities
-To retrieve an entity from the database, use the *Session* class's *find()* method:
 
-```java
-Person person = session.find(Person.class, 1);
-```
-This retrieves the Person object with the primary key value of 1.
-
-### Updating Entities
-
-To update an entity, simply modify the fields of the object retrieved from the database, and then call the *Session* class's *flush()* method to synchronize the in-memory state of the entity with the underlying persistent store:
-
-```java
-Person person = session.find(Person.class, 1);
-person.setAge(31);
-session.flush();
-```
-### Deleting Entities
-To delete an entity, use the *Session* class's *remove()* method:
-
-```java
-Person person = session.find(Person.class, 1);
-session.remove(person);
-```
-### Closing the Session
-When you are done with a *Session*, you should close it to release the resources associated with it. To close a *Session*, use the *Session* class's *close()* method:
-
-```java 
-session.close();
-```
-
-## Features
-Bibernate provides the following features:
-
-### Configuration
+## Configuration
 Bibernate demands very little configuration effort. With a single line of code, you can create a *SessionFactory* and adjust it with the help of a properties file. The following properties can be used to configure Bibernate:
 
 | Property Key                | Description                                 | Required | Default Value |
@@ -147,12 +170,11 @@ Bibernate demands very little configuration effort. With a single line of code, 
 | bibernate.show-sql          | Whether to show SQL statements in console.  | No       | true          |
 | bibernate.jdbc.connection-pool.size | The size of the connection pool.    | No       | 10            |
 
-### Mapping
-Bibernate maps Java objects to database tables using annotations. Entities are defined using the *@Entity* annotation, and fields are mapped using the *@Column* and *@Id* annotations.
-TBD
-### Persistence Context
+## Mapping
+Bibernate maps Java objects to database tables using annotations. Entities are defined using the *@Entity* annotation, and fields are mapped using the *@Column* and *@Id* annotations. Relationships between entities can be defined using *@OneToOne*, *@OneToMany*, and *@ManyToOne* annotations.
+## Persistence Context
 Bibernate manages the persistence context, which is the set of all entities associated with a *Session*. When you modify an entity, Bibernate automatically tracks the changes and synchronizes them with the database when necessary.
-### Exception Handling
+## Exception Handling
 Bibernate provides two custom exception classes: *BibernateException* and *JDBCException*. The former is the base exception type for all Bibernate exceptions, while the latter wraps a *java.sql.SQLException* and indicates that an exception occurred during a JDBC call. The *JDBCException* class provides methods to retrieve the SQL error code and message associated with the wrapped *SQLException*.
 
 
