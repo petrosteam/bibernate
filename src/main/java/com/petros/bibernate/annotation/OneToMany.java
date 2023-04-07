@@ -7,8 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation @OneToMany defines one-to-many entity associations. This annotation applies to the field that represents
- * collection of elements. Generic type of collection determines related entity type.
- *
+ * collection of elements. The generic type of the collection determines the related entity type.
+ * <p>
  * Example:
  * <pre>{@code
  * @Entity
@@ -19,8 +19,8 @@ import java.lang.annotation.Target;
  *      ...
  * }
  * }</pre>
- * @see ManyToOne
  *
+ * @see ManyToOne
  */
 
 @Target(ElementType.FIELD)
@@ -30,7 +30,8 @@ public @interface OneToMany {
     /**
      * Defines a bidirectional relationship between two entities.
      * The mappedBy attribute is used on the inverse side of the relationship to specify the owning side.
-     * It indicates that the relationship is bidirectional and that the entity on this side is not responsible for the association column(s).
+     * It indicates that the relationship is bidirectional and that the entity on this side is not responsible for
+     * the association column(s).
      *
      * @return field name of related entity
      */

@@ -13,6 +13,7 @@ import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
 import com.petros.bibernate.session.context.PersistenceContextImpl;
 import com.petros.bibernate.util.EntityUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
@@ -28,16 +29,21 @@ import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
+/**
+ * Implementation of the {@link Session} interface.
+ */
+@Slf4j
 public class SessionImpl implements Session {
-    private boolean isOpened = true;
     private final Transaction transaction;
     private final DataSource dataSource;
     private final EntityPersister entityPersister;
     private final Queue<EntityAction> actionQueue;
     private final PersistenceContext persistenceContext;
+    private boolean isOpened = true;
     private Connection connection;
 
     public SessionImpl(DataSource dataSource, Configuration configuration) {
+        log.info("Creating SessionImpl instance with dataSource and configuration");
         this.entityPersister = new EntityPersister(configuration.showSql());
         this.dataSource = dataSource;
         this.persistenceContext = new PersistenceContextImpl();
@@ -46,6 +52,7 @@ public class SessionImpl implements Session {
     }
 
     public SessionImpl(DataSource dataSource, EntityPersister entityPersister) {
+        log.info("Creating SessionImpl instance with dataSource and entityPersister");
         this.entityPersister = entityPersister;
         this.dataSource = dataSource;
         this.persistenceContext = new PersistenceContextImpl();
@@ -55,6 +62,7 @@ public class SessionImpl implements Session {
 
     @Override
     public void flush() throws BibernateException {
+        log.info("Flushing session");
         requireOpenSession();
         openConnection();
         try {
@@ -87,6 +95,7 @@ public class SessionImpl implements Session {
 
     @Override
     public <T> void persist(T entity) {
+        log.trace("Persisting entity of class {}", entity.getClass());
         requireOpenSession();
         requireOpenTransaction();
         requireTransientState(entity);
@@ -98,6 +107,7 @@ public class SessionImpl implements Session {
 
     @Override
     public <T> T find(Class<T> entityClass, Object primaryKey) {
+        log.trace("Finding entity of class {} with primary key {}", entityClass, primaryKey);
         requireOpenSession();
         flush();
         return persistenceContext.getCachedEntity(entityClass, primaryKey)
@@ -109,8 +119,10 @@ public class SessionImpl implements Session {
     }
 
     private <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue, Connection connection) {
+        log.trace("Finding all entities of class {} with field {} and value {}", entityClass, field, fieldValue);
         if (!isOpened) {
-            throw new BibernateException(format("Could not lazily initialize field [%s] of class [%s]", field, entityClass));
+            throw new BibernateException(format("Could not lazily initialize field [%s] of class [%s]", field,
+                    entityClass));
         }
         return entityPersister.findAll(entityClass, field, fieldValue, connection).stream()
                 .map(entity ->
@@ -121,6 +133,7 @@ public class SessionImpl implements Session {
 
     @Override
     public <T> List<T> findAll(Class<T> entityClass) {
+        log.trace("Finding all entities of class {}", entityClass);
         requireOpenSession();
         flush();
         return entityPersister.findAll(entityClass, connection);
@@ -128,6 +141,7 @@ public class SessionImpl implements Session {
 
     @Override
     public <T> void remove(T entity) {
+        log.trace("Removing entity of class {}", entity.getClass());
         requireOpenSession();
         requireOpenTransaction();
         requirePersistentState(entity);
@@ -139,6 +153,7 @@ public class SessionImpl implements Session {
 
     @Override
     public void close() {
+        log.info("Closing session");
         requireOpenSession();
         flush();
         persistenceContext.clear();
@@ -148,6 +163,7 @@ public class SessionImpl implements Session {
 
     @Override
     public void clear() {
+        log.info("Clearing session");
         persistenceContext.clear();
         actionQueue.clear();
     }
@@ -160,7 +176,8 @@ public class SessionImpl implements Session {
 
     private void requireOpenTransaction() {
         if (!transaction.isOpen()) {
-            throw new BibernateException("Transaction must be opened. Use session.openTransaction().begin() before persist or delete");
+            throw new BibernateException("Transaction must be opened. Use session.openTransaction().begin() before " +
+                    "persist or delete");
         }
     }
 
@@ -172,7 +189,8 @@ public class SessionImpl implements Session {
                 .ifPresent(id -> {
                     persistenceContext.getCachedEntity(entity.getClass(), id)
                             .ifPresent(e -> {
-                                throw new BibernateException(format("Entity %s must be in transient state. An id value [%s] must not exist", entity.getClass(), id));
+                                throw new BibernateException(format("Entity %s must be in transient state. An id " +
+                                        "value [%s] must not exist", entity.getClass(), id));
                             });
                 });
     }
@@ -181,7 +199,8 @@ public class SessionImpl implements Session {
     private <T> void requirePersistentState(T entity) {
         ofNullable(EntityUtil.getIdValue(entity))
                 .flatMap(id -> persistenceContext.getCachedEntity(entity.getClass(), id))
-                .orElseThrow(() -> new BibernateException(format("Entity %s must be in persistent state (entity must be associated with persistence context)", entity.getClass())));
+                .orElseThrow(() -> new BibernateException(format("Entity %s must be in persistent state (entity must " +
+                        "be associated with persistence context)", entity.getClass())));
     }
 
     private void openConnection() {
@@ -206,7 +225,7 @@ public class SessionImpl implements Session {
 
     private <T> void initializeRelations(Class<T> entityClass, T entity) {
         Field[] entityFields = EntityUtil.getEntityRelationFields(entityClass);
-        for(var entityField : entityFields) {
+        for (var entityField : entityFields) {
             entityField.setAccessible(TRUE);
             if (EntityUtil.isEntityField(entityField)) {
                 initializeEntityRelation(entity, entityField);
@@ -224,7 +243,8 @@ public class SessionImpl implements Session {
             var initializedEntity = find(relatedEntityClass, relatedEntityIdValue);
             entityField.set(entity, initializedEntity);
         } catch (IllegalAccessException e) {
-            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField, entity), e);
+            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField,
+                    entity), e);
         }
     }
 
@@ -236,14 +256,17 @@ public class SessionImpl implements Session {
             var relatedEntityField = relatedEntityType.getDeclaredField(ann.mappedBy());
             var fetchType = ann.fetchType();
             if (fetchType.equals(FetchType.LAZY)) {
-                var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, relatedEntityField, relatedEntityId, connection));
+                var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, relatedEntityField,
+                        relatedEntityId, connection));
                 entityField.set(entity, relatedEntityCollection);
             } else {
-                var relatedEntityCollection = findAll(relatedEntityType, relatedEntityField, relatedEntityId, connection);
+                var relatedEntityCollection = findAll(relatedEntityType, relatedEntityField, relatedEntityId,
+                        connection);
                 entityField.set(entity, relatedEntityCollection);
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField, entity), e);
+            throw new BibernateException(format("Could not initialize field [%s] in entity [%s]", entityField,
+                    entity), e);
         }
     }
 

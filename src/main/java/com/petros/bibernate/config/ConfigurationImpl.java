@@ -24,23 +24,25 @@ public class ConfigurationImpl implements Configuration {
 
     @Override
     public Optional<String> getProperty(String key) {
+        log.trace("Getting property with key: {}", key);
         return ofNullable(properties.getProperty(key));
     }
 
     @Override
     public String getUsername() {
-        return getProperty(JDBC_USERNAME).orElseThrow(() ->
-                new BibernateException(String.format("Property %s must be set", JDBC_USERNAME)));
+        log.trace("Getting username property");
+        return getProperty(JDBC_USERNAME).orElseThrow(() -> handlePropertyNotFoundException(JDBC_USERNAME));
     }
 
     @Override
     public String getPassword() {
-        return getProperty(JDBC_PASSWORD).orElseThrow(() ->
-                new BibernateException(String.format("Property %s must be set", JDBC_PASSWORD)));
+        log.trace("Getting password property");
+        return getProperty(JDBC_PASSWORD).orElseThrow(() -> handlePropertyNotFoundException(JDBC_PASSWORD));
     }
 
     @Override
     public Integer getConnectionPoolSize() {
+        log.trace("Getting connection pool size property");
         return Integer.parseInt(getProperty(JDBC_POOL_SIZE).orElseGet(() -> {
             log.info("Property {} is not set, default value will be used: {}", JDBC_POOL_SIZE,
                     DEFAULT_CONNECTION_POOL_SIZE);
@@ -50,13 +52,19 @@ public class ConfigurationImpl implements Configuration {
 
     @Override
     public String getUrl() {
-        return getProperty(JDBC_URL).orElseThrow(() ->
-                new BibernateException(String.format("Property %s must be set", JDBC_URL)));
+        log.trace("Getting URL property");
+        return getProperty(JDBC_URL).orElseThrow(() -> handlePropertyNotFoundException(JDBC_URL));
     }
 
     @Override
     public boolean showSql() {
+        log.trace("Getting show SQL property");
         return Boolean.parseBoolean(properties.getProperty(SHOW_SQL));
     }
 
+    private BibernateException handlePropertyNotFoundException(String propertyName) {
+        String errorMessage = String.format("Property %s must be set", propertyName);
+        log.error(errorMessage);
+        return new BibernateException(errorMessage);
+    }
 }

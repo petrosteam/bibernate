@@ -6,7 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation @Column specifies the name of the column in the database table that corresponds to the class field. If no annotation is present, then the field name is assumed to be column name
+ * Annotation @Column specifies the name of the column in the database table that corresponds to the class field.
+ * If no annotation is present, then the field name is assumed to be the column name.
+ * <p>
  * Example:
  * <pre>{@code
  * @Entity

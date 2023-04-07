@@ -6,7 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation @Id specifies the field of the entity class that corresponds to the primary key column in the database. Every class marked with annotation @Entity must contain exactly one field marked with @Id
+ * Annotation @Id specifies the field of the entity class that corresponds to the primary key column in the database.
+ * Every class marked with annotation @Entity must contain exactly one field marked with @Id.
+ * <p>
  * Example:
  * <pre>{@code
  *      @Entity
