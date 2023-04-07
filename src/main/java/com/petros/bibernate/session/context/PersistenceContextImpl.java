@@ -59,6 +59,7 @@ public class PersistenceContextImpl implements PersistenceContext {
             for (var i = 0; i < currentFieldValues.length; i++) {
                 if (!Objects.equals(currentFieldValues[i],cachedFieldValues[i])) {
                     diff.add(cachedEntity);
+                    snapshot.put(cachedEntry.getKey(),currentFieldValues);
                     break;
                 }
             }

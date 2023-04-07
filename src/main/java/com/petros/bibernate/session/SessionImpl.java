@@ -62,13 +62,16 @@ public class SessionImpl implements Session {
 
     @Override
     public void flush() throws BibernateException {
+        openConnection();
         log.info("Flushing session");
         requireOpenSession();
-        openConnection();
         try {
-            setAutoCommitIfTxOpen(FALSE);
             persistenceContext.getSnapshotDiff().forEach(entity -> actionQueue.add(new UpdateEntityAction(entityPersister,
                     entity)));
+            if (actionQueue.isEmpty()) {
+                return;
+            }
+            setAutoCommitIfTxOpen(FALSE);
             actionQueue.forEach(action -> action.execute(connection, persistenceContext));
             actionQueue.clear();
             connection.commit();
