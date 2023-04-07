@@ -59,6 +59,22 @@ CREATE TABLE person_info
     FOREIGN KEY (id) REFERENCES persons(id)
 );
 
+CREATE TABLE items
+(
+    id         bigint auto_increment,
+    name varchar(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE bids
+(
+    id        bigint auto_increment,
+    price      decimal NOT NULL,
+    item_id   bigint NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (item_id) REFERENCES items(id)
+);
+
 INSERT INTO products(id, name, producer, price, created_at, is_available, stock_count, weight, description, sale_date, sale_time)
 VALUES (1, 'Play Station', 'Sony', 249.00, '2023-01-01 12:00:00', true, 100, 3.0, 'Play Station console', '2023-01-10', '09:00:00'),
        (2, 'XBox', 'Microsoft', 215.00, '2023-01-02 14:00:00', true, 150, 3.5, 'XBox console', '2023-01-15', '10:00:00'),
@@ -82,3 +98,17 @@ INSERT INTO wheels(id, side, position, car_id)
 VALUES (1, 'Left', 'Front', 1),
        (2, 'Left', 'Rear', 1),
        (3, 'Right', 'Front', 1);
+
+INSERT INTO items(id, name)
+VALUES (1, 'Book'),
+       (2, 'Picture'),
+       (3, 'House');
+
+INSERT INTO bids(id, price, item_id)
+VALUES (1, 200, 1),
+       (2, 300, 1),
+       (3, 1000, 2),
+       (4, 1500, 2),
+       (5, 25000, 3),
+       (6, 30000, 3),
+       (7, 27500, 3);

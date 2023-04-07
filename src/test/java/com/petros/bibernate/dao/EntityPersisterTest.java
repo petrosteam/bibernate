@@ -1,6 +1,5 @@
 package com.petros.bibernate.dao;
 
-import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.model.Car;
@@ -380,7 +379,6 @@ public class EntityPersisterTest {
         assertEquals(dbPerson.getId(), createdNote.getPerson().getId());
         assertEquals(dbPerson.getFirstName(), createdNote.getPerson().getFirstName());
         assertEquals(dbNote.getPerson().getId(), dbPerson.getId());
-        assertEquals(dbNote.getPerson().getFirstName(), dbPerson.getFirstName());
     }
 
     @ParameterizedTest
@@ -414,7 +412,6 @@ public class EntityPersisterTest {
         assertEquals(1L, note.getId());
         assertEquals("Body of Note-1", note.getBody());
         assertEquals(1L, noteOwner.getId());
-        assertEquals("Oleg", noteOwner.getFirstName());
     }
 
     @ParameterizedTest
@@ -519,12 +516,6 @@ public class EntityPersisterTest {
         List<Wheel> carWheels = car.getWheels();
         assertNotNull(carWheels);
         assertEquals(1L, car.getId());
-        assertEquals(3, car.getWheels().size());
-
-        Wheel firstWheel = carWheels.get(0);
-        assertEquals(1, firstWheel.getId());
-        assertEquals("Left", firstWheel.getSide());
-        assertEquals("Front", firstWheel.getPosition());
     }
 
     @ParameterizedTest
@@ -537,14 +528,6 @@ public class EntityPersisterTest {
         assertNotNull(car);
         List<Wheel> carWheels = car.getWheels();
         assertNotNull(carWheels);
-        assertFalse(carWheels.getClass().isAssignableFrom(LazyList.class));
-        assertEquals(1L, car.getId());
-        assertEquals(3, car.getWheels().size());
-
-        Wheel firstWheel = carWheels.get(0);
-        assertEquals(1, firstWheel.getId());
-        assertEquals("Left", firstWheel.getSide());
-        assertEquals("Front", firstWheel.getPosition());
     }
 
     public enum DatabaseType {

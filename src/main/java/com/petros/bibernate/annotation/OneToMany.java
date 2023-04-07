@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  * @Entity
  * public class Owner {
  *      ...
- *      @OneToMany
+ *      @OneToMany(mappedBy = "car")
  *      private List<Car> cars;
  *      ...
  * }
@@ -26,6 +26,15 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OneToMany {
+
+    /**
+     * Defines a bidirectional relationship between two entities.
+     * The mappedBy attribute is used on the inverse side of the relationship to specify the owning side.
+     * It indicates that the relationship is bidirectional and that the entity on this side is not responsible for the association column(s).
+     *
+     * @return field name of related entity
+     */
+    String mappedBy();
 
     FetchType fetchType() default FetchType.LAZY;
 }
