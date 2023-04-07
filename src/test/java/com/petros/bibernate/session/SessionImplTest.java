@@ -4,9 +4,7 @@ import com.petros.bibernate.config.Configuration;
 import com.petros.bibernate.dao.EntityPersister;
 import com.petros.bibernate.datasource.BibernateDataSource;
 import com.petros.bibernate.exception.BibernateException;
-import com.petros.bibernate.session.model.Note;
-import com.petros.bibernate.session.model.Person;
-import com.petros.bibernate.session.model.Product;
+import com.petros.bibernate.session.model.*;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +21,6 @@ import static com.petros.bibernate.config.Configuration.DEFAULT_CONNECTION_POOL_
 import static com.petros.bibernate.util.TestsConstants.TEST_PROPERTIES_PATH;
 import static org.junit.jupiter.api.Assertions.*;
 import static java.math.BigDecimal.ZERO;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -213,21 +210,6 @@ class SessionImplTest {
         assertEquals(productsNumberBefore + 1, products.size());
     }
 
-    // TODO: 02.04.2023 uncomment test when SEQUENCE id generation strategy is implemented
-//    @Test
-//    @DisplayName("Entity creation and then update happens on flush method execution")
-//    void createAndUpdateEntityOnFlush() {
-//        session.getTransaction().begin();
-//
-//        Product product = createProduct();
-//        session.persist(product);
-//        product.setProductName("Another product name");
-//        session.flush();
-//
-//        verify(entityPersister, times(1)).insert(any(), any());
-//        verify(entityPersister, times(1)).update(any(), any());
-//    }
-
     private Product createProduct() {
         Product product = new Product();
         product.setPrice(ZERO);
@@ -262,5 +244,41 @@ class SessionImplTest {
 
         var selectedNote = session.find(Note.class, 1);
         assertNotEquals(note.getPerson(), selectedNote.getPerson());
+    }
+
+    @Test
+    @DisplayName("Eager @OneToMany relation should be cached when parent is fetched")
+    void findByIdEagerOneToManyCollectionCached() {
+        Item item = session.find(Item.class, 3L);
+        Item item2 = session.find(Item.class, 3L);
+
+        assertEquals(item2, item);
+
+        List<Bid> bids = item.getBids();
+        assertEquals(3, bids.size());
+
+        assertEquals(new BigDecimal(25000), bids.get(0).getPrice());
+        assertEquals(new BigDecimal(30000), bids.get(1).getPrice());
+        assertEquals(new BigDecimal(27500), bids.get(2).getPrice());
+
+        verify(entityPersister, times(1)).findById(any(), any(), any());
+        verify(entityPersister, times(2)).findAll(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Eager @ManyToOne relation should be cached when child is fetched")
+    void findByIdEagerManyToOneEntityCached() {
+        Bid bid = session.find(Bid.class, 3L);
+        Bid bid2 = session.find(Bid.class, 3L);
+
+        assertEquals(bid2, bid);
+
+        assertEquals(bid.getItem(), bid2.getItem());
+        assertEquals(2, bid.getItem().getBids().size());
+        assertEquals(2, bid.getItem().getId());
+        assertEquals("Picture", bid.getItem().getName());
+
+        verify(entityPersister, times(2)).findById(any(), any(), any());
+        verify(entityPersister, times(3)).findAll(any(), any(), any(), any());
     }
 }

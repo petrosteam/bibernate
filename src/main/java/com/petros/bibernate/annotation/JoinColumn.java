@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation @JoinColumn specifies the name of the foreign key column.
- * If @JoinColumn is used with {@link ManyToOne} annotation - it means that foreign keyin the table of the source entity.
+ * If @JoinColumn is used with {@link ManyToOne} annotation - it means that foreign key in the table of the source entity.
  * <p>
  * Example:
  * <pre>{@code

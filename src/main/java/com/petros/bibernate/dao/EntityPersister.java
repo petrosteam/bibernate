@@ -1,40 +1,18 @@
 package com.petros.bibernate.dao;
 
-import com.petros.bibernate.annotation.FetchType;
-import com.petros.bibernate.annotation.OneToMany;
-import com.petros.bibernate.dao.lazy.LazyList;
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.petros.bibernate.util.EntityUtil.getColumnName;
-import static com.petros.bibernate.util.EntityUtil.getIdField;
-import static com.petros.bibernate.util.EntityUtil.getIdValue;
-import static com.petros.bibernate.util.EntityUtil.getInsertableColumns;
-import static com.petros.bibernate.util.EntityUtil.getInsertableValues;
-import static com.petros.bibernate.util.EntityUtil.getJoinColumnName;
-import static com.petros.bibernate.util.EntityUtil.getTableName;
-import static com.petros.bibernate.util.EntityUtil.getUpdatableColumns;
-import static com.petros.bibernate.util.EntityUtil.getUpdatableValues;
-import static com.petros.bibernate.util.EntityUtil.isEntityCollectionField;
-import static com.petros.bibernate.util.EntityUtil.isEntityField;
-import static com.petros.bibernate.util.EntityUtil.isRegularField;
+import static com.petros.bibernate.util.EntityUtil.*;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 
@@ -303,24 +281,15 @@ public class EntityPersister {
                 } else if (isEntityField(entityField)) {
                     var relatedEntityClass = entityField.getType();
 
-                    var relatedEntityId = getJoinColumnName(entityField);
+                    var relatedEntityId = getColumnName(entityField);
                     var relatedEntityIdValue = resultSet.getObject(relatedEntityId);
 
-                    var relatedEntity = findById(relatedEntityClass, relatedEntityIdValue, connection);
-                    entityField.set(entity, relatedEntity);
-                } else if (isEntityCollectionField(entityField)) {
-                    var relatedEntityType = getRelatedEntityType(entityField);
-                    var relatedEntityId = getIdValue(entity);
-                    var ann = entityField.getAnnotation(OneToMany.class);
-                    var fetchType = ann.fetchType();
-                    if (fetchType.equals(FetchType.LAZY)) {
-                        var relatedEntityCollection = new LazyList<T>(() -> findAll(relatedEntityType, entityField, relatedEntityId, connection));
-                        entityField.set(entity, relatedEntityCollection);
-                    } else {
-                        var relatedEntityCollection = findAll(relatedEntityType, entityField, relatedEntityId, connection);
-                        entityField.set(entity, relatedEntityCollection);
-                    }
+                    Object o = relatedEntityClass.getConstructor().newInstance();
+                    Field declaredField = EntityUtil.getIdField(relatedEntityClass);
+                    declaredField.setAccessible(TRUE);
+                    declaredField.set(o, relatedEntityIdValue);
 
+                    entityField.set(entity, o);
                 }
             }
             return entity;
@@ -328,14 +297,6 @@ public class EntityPersister {
                  SQLException e) {
             throw new BibernateException(e);
         }
-    }
-
-    private Class<?> getRelatedEntityType(Field entityField) {
-        var paramType = (ParameterizedType) entityField.getGenericType();
-        var actualTypeArgs = paramType.getActualTypeArguments();
-        var actualTypeArgument = actualTypeArgs[0];
-
-        return (Class<?>) actualTypeArgument;
     }
 
     private static Object convertToJavaType(Field field, Object value) throws IllegalAccessException, SQLException {
