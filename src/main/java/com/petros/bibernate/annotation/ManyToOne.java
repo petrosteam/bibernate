@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation @ManyToOne specifies an association to another entity.
+ * <p>
  * Example:
  * <pre>{@code
  * @Entity

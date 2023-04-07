@@ -11,5 +11,4 @@ public interface PropertiesLoader {
      * @return set properties from configuration file
      */
     Properties getProperties();
-
 }

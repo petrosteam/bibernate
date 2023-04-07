@@ -9,10 +9,21 @@ import java.sql.SQLException;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * A connection pool for Bibernate that maintains a queue of {@link BibernateConnection} instances.
+ */
 @Slf4j
 public class BibernateConnectionPool {
     private final Queue<BibernateConnection> pool;
 
+    /**
+     * Constructs a new connection pool with the specified parameters.
+     *
+     * @param url                the JDBC URL to connect to
+     * @param username           the username to use when connecting
+     * @param password           the password to use when connecting
+     * @param connectionPoolSize the size of the connection pool
+     */
     public BibernateConnectionPool(String url, String username, String password, int connectionPoolSize) {
         log.info("Connection pool is going to be created");
         pool = new LinkedBlockingQueue<>();
@@ -29,10 +40,16 @@ public class BibernateConnectionPool {
         }
     }
 
+    /**
+     * Gets a connection from the pool.
+     */
     public Connection getConnection() {
         return pool.poll();
     }
 
+    /**
+     * Closes all connections in the pool.
+     */
     public void close() {
         log.info("Connection pool is going to be closed");
         pool.forEach(logicConnection -> {

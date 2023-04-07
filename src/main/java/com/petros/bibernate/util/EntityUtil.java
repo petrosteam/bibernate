@@ -1,8 +1,17 @@
 package com.petros.bibernate.util;
 
-import com.petros.bibernate.annotation.*;
+import com.petros.bibernate.annotation.Column;
+import com.petros.bibernate.annotation.GeneratedValue;
+import com.petros.bibernate.annotation.Id;
+import com.petros.bibernate.annotation.JoinColumn;
+import com.petros.bibernate.annotation.ManyToOne;
+import com.petros.bibernate.annotation.MapsId;
+import com.petros.bibernate.annotation.OneToMany;
+import com.petros.bibernate.annotation.OneToOne;
+import com.petros.bibernate.annotation.Table;
 import com.petros.bibernate.exception.BibernateException;
 import com.petros.bibernate.session.context.PersistenceContext;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -16,6 +25,7 @@ import static java.util.Optional.ofNullable;
 /**
  * A utility class for working with database entities.
  */
+@Slf4j
 public class EntityUtil {
 
     /**
@@ -92,6 +102,7 @@ public class EntityUtil {
         try {
             return idField.get(entity);
         } catch (IllegalAccessException e) {
+            log.error("Could not retrieve ID from entity {}", entityClass.getSimpleName(), e);
             throw new BibernateException("Could not retrieve ID from entity " + entity.getClass().getSimpleName(), e);
         }
     }
@@ -107,20 +118,22 @@ public class EntityUtil {
     }
 
     /**
-
-     Determines whether a field is annotated with {@link Id} and {@link GeneratedValue}.
-     @param field the field to check
-     @return true if the field is annotated with {@link Id} and {@link GeneratedValue}, false otherwise
+     * Determines whether a field is annotated with {@link Id} and {@link GeneratedValue}.
+     *
+     * @param field the field to check
+     * @return true if the field is annotated with {@link Id} and {@link GeneratedValue}, false otherwise
      */
     public static boolean isGeneratedIdField(Field field) {
         return field.isAnnotationPresent(Id.class) && field.isAnnotationPresent(GeneratedValue.class);
     }
 
     /**
-     Retrieves the list of columns that are insertable for a given entity class.
-     This method excludes columns annotated with {@link Id} and {@link GeneratedValue} and fields marked with {@link MapsId}.
-     @param entityClass the entity class for which to retrieve the insertable columns
-     @return the list of insertable columns
+     * Retrieves the list of columns that are insertable for a given entity class.
+     * This method excludes columns annotated with {@link Id} and {@link GeneratedValue} and fields marked with
+     * {@link MapsId}.
+     *
+     * @param entityClass the entity class for which to retrieve the insertable columns
+     * @return the list of insertable columns
      */
     public static List<String> getInsertableColumns(Class<?> entityClass) {
         return Arrays.stream(entityClass.getDeclaredFields())
@@ -163,11 +176,12 @@ public class EntityUtil {
     }
 
     /**
-     Retrieves the list of values that are insertable for a given entity.
-     Values corresponding to fields annotated with {@link Id} are excluded from the list.
-     If a field is annotated with {@link MapsId}, the ID value is taken from the corresponding nested entity.
-     @param entity the entity for which to retrieve the insertable values
-     @return the list of insertable values
+     * Retrieves the list of values that are insertable for a given entity.
+     * Values corresponding to fields annotated with {@link Id} are excluded from the list.
+     * If a field is annotated with {@link MapsId}, the ID value is taken from the corresponding nested entity.
+     *
+     * @param entity the entity for which to retrieve the insertable values
+     * @return the list of insertable values
      */
     public static List<Object> getInsertableValues(Object entity) {
         Field mapsIdField = getMapsIdField(entity.getClass());
@@ -206,6 +220,7 @@ public class EntityUtil {
                 .filter(f -> f.isAnnotationPresent(MapsId.class))
                 .toList();
         if (mapsIdFields.size() > 1) {
+            log.error("Entity {} has multiple fields annotated with @MapsId", entityClass.getSimpleName());
             throw new BibernateException(format(
                     "Entity %s has multiple fields annotated with @MapsId", entityClass.getSimpleName()));
         }
@@ -266,6 +281,7 @@ public class EntityUtil {
         try {
             return field.get(entity);
         } catch (IllegalAccessException e) {
+            log.error("Could not get field {} value for entity {}", field.getName(), getTableName(entity.getClass()));
             throw new BibernateException("Could not get field %s value for entity %s".formatted(field.getName(),
                     getTableName(entity.getClass())));
         }
@@ -281,6 +297,7 @@ public class EntityUtil {
     public static boolean isEntityField(Field field) {
         return field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class);
     }
+
     public static boolean isEntityCollectionField(Field field) {
         return field.isAnnotationPresent(OneToMany.class);
     }
