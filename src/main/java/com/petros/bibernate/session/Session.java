@@ -24,7 +24,7 @@ import java.util.List;
  *
  * @see SessionFactory
  */
-public interface Session {
+public interface Session extends AutoCloseable {
     /**
      * Force this session to flush. Must be called at the end of a
      * unit of work, before committing the transaction and closing the
@@ -87,7 +87,6 @@ public interface Session {
 
     /**
      * Removes all entities from persistence context and action queue
-     *
      */
     void clear();
 

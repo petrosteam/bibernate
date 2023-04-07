@@ -13,7 +13,7 @@ import com.petros.bibernate.exception.BibernateException;
  * <p/>
  * Implementors <strong>must</strong> be threadsafe.
  */
-public interface SessionFactory {
+public interface SessionFactory extends AutoCloseable {
 
     /**
      * Open a {@link Session}.
