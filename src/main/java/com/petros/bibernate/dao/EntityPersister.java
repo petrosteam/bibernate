@@ -1,6 +1,7 @@
 package com.petros.bibernate.dao;
 
 import com.petros.bibernate.exception.BibernateException;
+import com.petros.bibernate.exception.JDBCException;
 import com.petros.bibernate.util.EntityUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -188,7 +189,7 @@ public class EntityPersister {
      * @param connection  the database connection
      * @param <T>         the type of entities to be found
      * @return a list of entities found in the database
-     * @throws BibernateException if an exception occurs while executing the SQL query
+     * @throws JDBCException if an exception occurs while executing the SQL query
      */
     public <T> List<T> findAll(Class<T> entityClass, Field field, Object fieldValue, Connection connection) {
         log.trace("Entering findAll() with entityClass={}, field={}, fieldValue={}, and connection={}",
@@ -203,7 +204,7 @@ public class EntityPersister {
             log.trace("Found {} entities of type {}", result.size(), entityClass.getName());
         } catch (SQLException e) {
             log.error("Exception occurred while executing SQL query", e);
-            throw new BibernateException(e);
+            throw new JDBCException(e.getMessage(), e);
         }
         return result;
     }
@@ -215,7 +216,7 @@ public class EntityPersister {
      * @param connection  the connection to the database
      * @param <T>         the type of the entity
      * @return a list of entities
-     * @throws BibernateException if an SQLException occurs
+     * @throws JDBCException if an SQLException occurs
      */
     public <T> List<T> findAll(Class<T> entityClass, Connection connection) {
         List<T> result = new ArrayList<>();
@@ -227,7 +228,7 @@ public class EntityPersister {
             }
         } catch (SQLException e) {
             log.error("Exception occurred while executing SQL query", e);
-            throw new BibernateException(e);
+            throw new JDBCException(e.getMessage(), e);
         }
         log.trace("Successfully retrieved {} entities of class {} from database.", result.size(),
                 entityClass.getSimpleName());
@@ -251,8 +252,11 @@ public class EntityPersister {
             throwExceptionIfRowsAffectedNotOne(rowsAffected, "Failed to insert entity into the database");
             setIdFromGeneratedKeys(entity, insertStatement);
             return entity;
-        } catch (SQLException | IllegalAccessException e) {
+        } catch (SQLException e) {
             log.error("Exception occurred while executing SQL query", e);
+            throw new JDBCException(e.getMessage(), e);
+        } catch (IllegalAccessException e) {
+            log.error("Exception occurred while setting ID from generated Keys", e);
             throw new BibernateException(e);
         }
     }
@@ -275,8 +279,11 @@ public class EntityPersister {
             log.trace("Entity of class {} with ID {} was updated in the database", entity.getClass().getSimpleName(),
                     getIdValue(entity));
             return entity;
-        } catch (SQLException | IllegalAccessException e) {
+        } catch (SQLException e) {
             log.error("Exception occurred while executing SQL query", e);
+            throw new JDBCException(e.getMessage(), e);
+        } catch (IllegalAccessException e) {
+            log.error("Exception occurred while preparing update statement", e);
             throw new BibernateException(e);
         }
     }
@@ -287,7 +294,7 @@ public class EntityPersister {
      * @param entity     the entity to delete
      * @param connection the database connection to use
      * @return the deleted entity
-     * @throws BibernateException if there was an error deleting the entity from the database
+     * @throws JDBCException if there was an error deleting the entity from the database
      */
     public <T> T delete(T entity, Connection connection) {
         Objects.requireNonNull(entity);
@@ -299,7 +306,7 @@ public class EntityPersister {
             return entity;
         } catch (SQLException e) {
             log.error("Exception occurred while executing SQL query", e);
-            throw new BibernateException(e);
+            throw new JDBCException(e.getMessage(), e);
         }
     }
 
@@ -412,11 +419,14 @@ public class EntityPersister {
                 }
             }
             return entity;
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
-                 SQLException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                 NoSuchMethodException e) {
             log.error("Exception occurred while mapping result set to entity of class {}",
                     entityClass.getSimpleName(), e);
             throw new BibernateException(e);
+        } catch (SQLException e) {
+            log.error("Exception occurred while getting values from result set", e);
+            throw new JDBCException(e.getMessage(), e);
         }
     }
 
