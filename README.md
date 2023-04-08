@@ -61,15 +61,13 @@ To use Bibernate in your Java application, follow these steps:
     ```
 
    Additionally, make sure to include the JDBC driver for your chosen database system as a dependency in your project. Bibernate's features have been thoroughly tested with *MySQL*, *Postgres*, *MS SQL*, and *H2* databases, but other database systems should work as well.
-**Note**: In order to build the project, you need to have Docker running because the tests utilize Testcontainers for testing against different database systems. If you don't have Docker installed or you need to build the project without running the tests, you can execute the build command with the skipTests option:
+   
+   **Note**: In order to build the project, you need to have Docker running because the tests utilize Testcontainers for testing against different database systems. If you don't have Docker installed or you need to build the project without running the tests, you can execute the build command with the skipTests option:
 For Maven:
     ```
     mvn clean install -DskipTests
     ```
-For Gradle:
-    ```
-    ./gradlew build -x test
-    ```
+    
 2. Before using Bibernate, you need to create a *SessionFactory* instance. The *SessionFactory* is a thread-safe object that creates *Session* instances. To create a *SessionFactory*, you can use one of the following approaches:
 
    * Calling the *Persistence.createSessionFactory()* method without arguments to use the default configuration specified in the *src/main/resources/application.properties* file:
