@@ -63,7 +63,8 @@ To use Bibernate in your Java application, follow these steps:
    Additionally, make sure to include the JDBC driver for your chosen database system as a dependency in your project. Bibernate's features have been thoroughly tested with *MySQL*, *Postgres*, *MS SQL*, and *H2* databases, but other database systems should work as well.
    
    **Note**: In order to build the project, you need to have Docker running because the tests utilize Testcontainers for testing against different database systems. If you don't have Docker installed or you need to build the project without running the tests, you can execute the build command with the skipTests option:
-For Maven:
+   
+   For Maven:
     ```
     mvn clean install -DskipTests
     ```
